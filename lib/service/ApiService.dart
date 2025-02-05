@@ -16,6 +16,8 @@ class ApiService {
 
   /// GET 요청 (예: 친구 목록 가져오기)
   Future<Response> get(String endpoint, {Map<String, dynamic>? params}) async {
+    // bool isLoading = true; // ✅ 로딩 상태
+
     try {
       Response response = await _dio.get(endpoint, queryParameters: params);
       return response;
@@ -26,6 +28,7 @@ class ApiService {
 
   /// POST 요청 (예: 로그인)
   Future<Response> post(String endpoint, {Map<String, dynamic>? data}) async {
+    // bool isLoading = true; // ✅ 로딩 상태
     try {
       Response response = await _dio.post(endpoint, data: data);
       return response;
@@ -36,6 +39,7 @@ class ApiService {
 
   /// PUT 요청 (예: 프로필 수정)
   Future<Response> put(String endpoint, {Map<String, dynamic>? data}) async {
+    // bool isLoading = true; // ✅ 로딩 상태
     try {
       Response response = await _dio.put(endpoint, data: data);
       return response;
@@ -46,6 +50,7 @@ class ApiService {
 
   /// DELETE 요청 (예: 친구 삭제)
   Future<Response> delete(String endpoint, {Map<String, dynamic>? params}) async {
+    // bool isLoading = true; // ✅ 로딩 상태
     try {
       Response response = await _dio.delete(endpoint, queryParameters: params);
       return response;
