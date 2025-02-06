@@ -3,6 +3,7 @@ import 'FriendList.dart'; // FriendList 임포트
 import '../../components/BottomBar.dart'; // BottomNavBar 컴포넌트 임포트
 import '../../components/TopBar.dart'; // CustomAppBar 임포트
 import '../../service/ApiService.dart';
+import '../camera/CameraScreen.dart';
 
 // class HomeScreen extends StatelessWidget {
 //   final List<Map<String, String>> friends = [
@@ -75,7 +76,10 @@ class _HomeScreenState extends State<HomeScreen> {
       body: FriendList(friends: friends), // FriendList 위젯 사용
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // 카메라 버튼 동작 추가
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => CameraScreen()),
+          );
         },
         backgroundColor: Colors.black,
         child: Icon(Icons.camera_alt, color: Colors.white),
