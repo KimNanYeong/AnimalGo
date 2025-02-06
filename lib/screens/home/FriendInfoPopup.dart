@@ -77,24 +77,24 @@ class FriendInfoPopup extends StatelessWidget {
                           ),
                         ),
                         SizedBox(width: 10),
-                        // ElevatedButton(
-                        //   onPressed: () {
-                        //     // 상세보기 버튼 동작 추가
-                        //     print('상세보기 버튼 눌림');
-                        //   },
-                        //   style: ElevatedButton.styleFrom(
-                        //     backgroundColor: Colors.grey,
-                        //     minimumSize: Size(screenWidth * 0.35, 50), // 화면 너비의 35%로 버튼 크기 설정
-                        //     padding: EdgeInsets.symmetric(vertical: 10),
-                        //   ),
-                        //   child: Text(
-                        //     '상세보기',
-                        //     style: TextStyle(
-                        //       fontSize: screenWidth * 0.05, // 화면 너비의 4%로 글자 크기 설정
-                        //       color: Colors.white
-                        //     ),
-                        //   ),
-                        // ),
+                        ElevatedButton(
+                          onPressed: () {
+                            // 상세보기 버튼 동작 추가
+                            print('상세보기 버튼 눌림');
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.grey,
+                            minimumSize: Size(screenWidth * 0.35, 50), // 화면 너비의 35%로 버튼 크기 설정
+                            padding: EdgeInsets.symmetric(vertical: 10),
+                          ),
+                          child: Text(
+                            '상세보기',
+                            style: TextStyle(
+                              fontSize: screenWidth * 0.05, // 화면 너비의 4%로 글자 크기 설정
+                              color: Colors.white
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ],
