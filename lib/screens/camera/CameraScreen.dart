@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'CameraSelect.dart';
 
 class CameraScreen extends StatefulWidget {
   @override
@@ -15,7 +16,11 @@ class _CameraScreenState extends State<CameraScreen> {
     if (image != null) {
       // 촬영된 이미지 사용 가능
       print("사진 촬영 완료: ${image.path}");
-      Navigator.pop(context, image.path); // 이전 화면으로 이미지 경로 반환
+      Navigator.pop(context, image.path);// 이전 화면으로 이미지 경로 반환
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => CameraSelect(imagePath: image.path)),
+      );
     } else {
       print("촬영 취소됨");
       Navigator.pop(context); // 촬영 취소 시 이전 화면으로 돌아가기
