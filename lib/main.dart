@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import './routes/app_router.dart';
+import 'package:flutter/services.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,  // 세로 모드로 고정
+  ]);
   runApp(MyApp());
 }
 
