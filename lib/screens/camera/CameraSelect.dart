@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 
 class CameraSelect extends StatefulWidget {
-  final String imagePath;
+  final String segmentedImagePath; // ✅ 원본 이미지 제거, 세그멘테이션 이미지만 표시
 
-  const CameraSelect({Key? key, required this.imagePath}) : super(key: key);
+  const CameraSelect({Key? key, required this.segmentedImagePath}) : super(key: key);
 
   @override
   _CameraSelectState createState() => _CameraSelectState();
@@ -24,32 +24,66 @@ class _CameraSelectState extends State<CameraSelect> {
     print('닉네임: $nickname');
     print('성격: $selectedPersonality');
     print('외모: $selectedAppearance');
-    print('이미지 경로: ${widget.imagePath}');
+    print('세그멘테이션 이미지 경로: ${widget.segmentedImagePath}');
+  }
 
-    // 여기에 서버 전송이나 데이터 저장 로직 추가 가능
+  Widget _buildImageCard(String title, String imagePath) {
+    return Padding(
+      padding: EdgeInsets.all(8.0),
+      child: Card(
+        elevation: 4,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: EdgeInsets.all(8.0),
+              child: Text(
+                title,
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            InteractiveViewer(
+              minScale: 0.5,
+              maxScale: 4.0,
+              child: Image.file(
+                File(imagePath),
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) {
+                  return Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.error_outline, color: Colors.red, size: 48),
+                        SizedBox(height: 8),
+                        Text('이미지를 로드할 수 없습니다'),
+                        Text(error.toString(), style: TextStyle(fontSize: 12)),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('정보 입력')),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. 촬영한 이미지 표시
-            Center(
-              child: Image.file(
-                File(widget.imagePath),
-                width: 200,
-                height: 200,
-                fit: BoxFit.cover,
-              ),
-            ),
+            // ✅ 세그멘테이션된 이미지만 표시
+            _buildImageCard('세그멘테이션 결과', widget.segmentedImagePath),
             const SizedBox(height: 20),
 
-            // 2. 닉네임 입력 텍스트박스
+            // 닉네임 입력
             TextField(
               controller: nicknameController,
               decoration: const InputDecoration(
@@ -59,7 +93,7 @@ class _CameraSelectState extends State<CameraSelect> {
             ),
             const SizedBox(height: 20),
 
-            // 3. 성격 선택 콤보박스
+            // 성격 선택
             DropdownButtonFormField<String>(
               decoration: const InputDecoration(
                 labelText: '성격 선택',
@@ -80,7 +114,7 @@ class _CameraSelectState extends State<CameraSelect> {
             ),
             const SizedBox(height: 20),
 
-            // 4. 외모 선택 콤보박스
+            // 외모 선택
             DropdownButtonFormField<String>(
               decoration: const InputDecoration(
                 labelText: '외모 선택',
@@ -101,7 +135,7 @@ class _CameraSelectState extends State<CameraSelect> {
             ),
             const SizedBox(height: 20),
 
-            // 5. 제출 버튼
+            // 제출 버튼
             Center(
               child: ElevatedButton(
                 onPressed: _submitData,
