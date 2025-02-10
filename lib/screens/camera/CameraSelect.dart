@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
+import 'package:path/path.dart' as path;
+import 'package:provider/provider.dart';
+import 'setting/settings_provider.dart';
 
 class CameraSelect extends StatefulWidget {
-  final String segmentedImagePath; // ✅ 원본 이미지 제거, 세그멘테이션 이미지만 표시
+  final String segmentedImagePath; // ✅ 세그멘테이션 이미지 경로
 
   const CameraSelect({Key? key, required this.segmentedImagePath}) : super(key: key);
 
@@ -18,13 +21,53 @@ class _CameraSelectState extends State<CameraSelect> {
   final List<String> personalityOptions = ['밝음', '차분함', '활발함', '조용함'];
   final List<String> appearanceOptions = ['귀여움', '멋짐', '상냥함', '강인함'];
 
-  void _submitData() {
-    String nickname = nicknameController.text;
+  /// ✅ 저장 함수
+  Future<void> _saveData() async {
+    final nickname = nicknameController.text.trim();
+    if (nickname.isEmpty || selectedPersonality == null || selectedAppearance == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('닉네임, 성격, 외모를 모두 입력하세요.'))
+      );
+      return;
+    }
 
-    print('닉네임: $nickname');
-    print('성격: $selectedPersonality');
-    print('외모: $selectedAppearance');
-    print('세그멘테이션 이미지 경로: ${widget.segmentedImagePath}');
+    try {
+      final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
+      
+      // 저장할 폴더 가져오기
+      String saveDirectory = settingsProvider.savePath;
+      if (!await settingsProvider.validateSavePath(saveDirectory)) {
+        print('저장 경로 검증 실패. 기본 경로 사용');
+        saveDirectory = '/storage/emulated/0/Pictures/AnimalSegmentation';
+      }
+
+      // 폴더가 없으면 생성
+      final directory = Directory(saveDirectory);
+      if (!await directory.exists()) {
+        await directory.create(recursive: true);
+      }
+
+      // 저장할 파일 경로 설정
+      final String saveFileName = 'segmented_${DateTime.now().millisecondsSinceEpoch}.png';
+      final String saveFilePath = path.join(saveDirectory, saveFileName);
+      
+      // 기존 이미지 파일을 새로운 위치로 복사
+      final File originalFile = File(widget.segmentedImagePath);
+      await originalFile.copy(saveFilePath);
+
+      print('저장 성공: $saveFilePath');
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('파일 저장 완료! \n위치: $saveFilePath'))
+      );
+      
+      Navigator.pop(context); // 저장 후 이전 화면으로 이동
+    } catch (e) {
+      print('파일 저장 실패: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('파일 저장 실패: $e'), backgroundColor: Colors.red)
+      );
+    }
   }
 
   Widget _buildImageCard(String title, String imagePath) {
@@ -135,10 +178,10 @@ class _CameraSelectState extends State<CameraSelect> {
             ),
             const SizedBox(height: 20),
 
-            // 제출 버튼
+            // ✅ 저장 버튼 (저장 함수 호출)
             Center(
               child: ElevatedButton(
-                onPressed: _submitData,
+                onPressed: _saveData,
                 child: const Text('저장'),
               ),
             ),
