@@ -14,6 +14,7 @@ import 'setting/network_provider.dart';
 import 'setting/settings_provider.dart';
 // import 'setting/animal_characteristics_provider.dart';
 
+// 카메라 화면을 담당하는 StatefulWidget
 class CameraScreen extends StatefulWidget {
   @override
   _CameraScreenState createState() => _CameraScreenState();
@@ -36,7 +37,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
     WidgetsBinding.instance.addObserver(this);
     _initializeCamera();
   }
-
+  // 앱 상태가 변경될 때 호출되는 함수 (예: 앱이 백그라운드로 갈 때)
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (_controller == null || !_controller!.value.isInitialized) return;
@@ -47,6 +48,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       _initializeCamera();
     }
   }
+  // 카메라 리소스를 정리하는 함수
   Future<void> _disposeCamera() async {
     if (_controller != null) {
       await _controller!.dispose();
@@ -55,6 +57,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       }
     }
   }
+  // 카메라를 초기화하는 함수
   Future<void> _initializeCamera() async {
     if (!await _checkCameraPermission()) {
       setState(() {
@@ -99,7 +102,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       }
     }
   }
-
+  // 이미지를 압축하는 함수
   Future<File?> _compressImage(File file) async {
     try {
       final dir = await getTemporaryDirectory();
@@ -120,6 +123,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       return null;
     }
   }
+  // 오류 메시지를 화면에 표시하는 함수
   void _showError(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -130,10 +134,11 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       ),
     );
   }
+  // 카메라 권한 확인 함수
   Future<bool> _checkCameraPermission() async {
     return await Permission.camera.request().isGranted;
   }
-
+  // 사진을 촬영하고 처리하는 함수
   Future<void> _captureAndProcess() async {
     if (_controller == null || !_controller!.value.isInitialized) {
       return;
@@ -166,7 +171,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       );
     }
   }
-
+  // 플래시 토글 함수
   void _toggleFlash() async {
     if (_controller != null) {
       try {
@@ -179,6 +184,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       }
     }
   }
+  // ✅ 서버 전송 후 가공된 이미지 수신 후 삭제
   Future<void> _processImage(File imageFile) async {
     final networkProvider = Provider.of<NetworkProvider>(context, listen: false);
 
@@ -193,61 +199,47 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       final response = await networkProvider.uploadImage(compressedFile);
 
       if (response.statusCode == 200) {
+        print('이미지 서버 업로드 성공');
+
         final decodedData = json.decode(response.body);
         if (!decodedData.containsKey('image')) {
-          throw Exception('서버 응답에 이미지가 없습니다');
+          throw Exception('서버 응답에 세그멘테이션 이미지 없음');
         }
 
+        // ✅ 서버에서 가공된 이미지 수신
         final imageBytes = base64Decode(decodedData['image']);
-        final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
-
-        // 경로 검증 후 기본 경로로 자동 변경
-        String savePath = settingsProvider.savePath;
-        if (!await settingsProvider.validateSavePath(savePath)) {
-          print('저장 경로 검증 실패. 기본 경로를 사용합니다.');
-          savePath = '/storage/emulated/0/Pictures/AnimalSegmentation';
-        }
-
-        // 저장소 권한 확인
-        if (!await settingsProvider.requestStoragePermission()) {
-          throw Exception('저장소 권한이 필요합니다.');
-        }
-
-        final String segmentedPath = path.join(
-            savePath, 'segmented_${DateTime.now().millisecondsSinceEpoch}.png');
+        final tempDir = await getTemporaryDirectory();
+        final segmentedPath = path.join(tempDir.path, 'segmented_${DateTime.now().millisecondsSinceEpoch}.png');
 
         File segmentedFile = File(segmentedPath);
-        await segmentedFile.create(recursive: true); // 경로가 없으면 생성
         await segmentedFile.writeAsBytes(imageBytes);
+        print('세그멘테이션 이미지 저장 완료: $segmentedPath');
 
-        print('파일 저장 성공: $segmentedPath');
-
+        // ✅ 가공된 이미지 수신 후 원본 이미지 삭제
         await compressedFile.delete();
         await imageFile.delete();
+        print('원본 및 압축된 이미지 삭제 완료');
 
+        // ✅ CameraSelect 화면으로 이동 (여기서만 저장 가능)
         if (mounted) {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => CameraSelect(
-                segmentedImagePath: segmentedPath,
-              ),
+              builder: (context) => CameraSelect(segmentedImagePath: segmentedPath),
             ),
           );
         }
+      } else {
+        print('서버 응답 오류: ${response.statusCode}');
       }
     } catch (e) {
-      print('[치명적 에러] ${DateTime.now()}: $e');
+      print('[에러] 이미지 처리 실패: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('이미지 저장 실패: $e'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('이미지 처리 실패: $e')),
       );
-      rethrow;
     }
   }
-
+  // 카메라 설정을 적용하는 함수
   Future<void> _configureCameraSettings(CameraController controller) async {
     try {
       await Future.wait([
