@@ -4,7 +4,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:http/http.dart' as http;
-import 'package:animalgo/screens/camera/CameraSelect.dart';
+import 'CameraSelect.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
@@ -162,6 +162,11 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       // 서버 전송 처리
       await _processImage(File(tempPath));
 
+      setState(() {
+        _isProcessing = false;
+        _errorMessage = '사진 다시 찍어주세요'; // 📌 오류 발생 시 메시지 설정
+      });
+
     } catch (e) {
       print('촬영 오류: $e');
       if (!mounted) return;
@@ -289,16 +294,27 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
           children: [
             Icon(Icons.error_outline, color: Colors.red, size: 48),
             SizedBox(height: 16),
-            Text(_errorMessage!, style: TextStyle(color: Colors.red)),
+            Text(
+              _errorMessage!,
+              style: TextStyle(color: Colors.red),
+              textAlign: TextAlign.center,
+            ),
             SizedBox(height: 16),
             ElevatedButton(
-              onPressed: _initializeCamera,
-              child: Text('다시 시도'),
+              onPressed: () {
+                // ✅ '다시 찍어주세요' 버튼 클릭 시 사진촬영 모드로 이동
+                setState(() {
+                  _errorMessage = null; // 오류 메시지 초기화
+                  _initializeCamera(); // 카메라 다시 초기화
+                });
+              },
+              child: Text('다시 찍어주세요'),
             ),
           ],
         ),
       );
     }
+
 
     if (!_isCameraInitialized || _controller == null || !_controller!.value.isInitialized) {
       return Center(
