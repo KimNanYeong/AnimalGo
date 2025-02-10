@@ -4,13 +4,14 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:http/http.dart' as http;
-import 'CameraSelect.dart';
+import 'package:example_1/screens/camera/CameraSelect.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:path/path.dart' as path;
 import 'setting/network_provider.dart';
+import 'CaptureRetryScreen.dart';
 import 'setting/settings_provider.dart';
 // import 'setting/animal_characteristics_provider.dart';
 
@@ -145,37 +146,33 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
     }
 
     try {
-      // 촬영 전 카메라 상태 확인
-      if (!_controller!.value.isInitialized) {
-        throw CameraException('카메라 미초기화', '카메라가 초기화되지 않았습니다.');
-      }
+      setState(() {
+        _isProcessing = true;
+        _errorMessage = null; // 에러 메시지 초기화
+      });
 
       final XFile picture = await _controller!.takePicture();
 
-      // 임시 파일로 저장
+      // ✅ 임시 디렉토리 생성 (임시 저장만 함)
       final tempDir = await getTemporaryDirectory();
-      final tempPath = path.join(tempDir.path, 'temp_${DateTime.now().millisecondsSinceEpoch}.jpg');
-      await File(picture.path).copy(tempPath);
+      final String originalTempPath = path.join(tempDir.path, 'original_${DateTime.now().millisecondsSinceEpoch}.jpg');
+      final File originalTempFile = await File(picture.path).copy(originalTempPath);
 
       if (!mounted) return;
 
-      // 서버 전송 처리
-      await _processImage(File(tempPath));
-
-      setState(() {
-        _isProcessing = false;
-        _errorMessage = '사진 다시 찍어주세요'; // 📌 오류 발생 시 메시지 설정
-      });
-
+      // ✅ 서버 전송 후 세그멘테이션 이미지 받기
+      await _processImage(originalTempFile, tempDir);
     } catch (e) {
       print('촬영 오류: $e');
-      if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('촬영 중 오류가 발생했습니다: $e')),
-      );
+      if (!mounted) return;
+      setState(() {
+        _isProcessing = false;
+        _errorMessage = '사진 다시 찍어주세요';
+      });
     }
   }
+
   // 플래시 토글 함수
   void _toggleFlash() async {
     if (_controller != null) {
@@ -190,15 +187,19 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
     }
   }
   // ✅ 서버 전송 후 가공된 이미지 수신 후 삭제
-  Future<void> _processImage(File imageFile) async {
+  Future<void> _processImage(File originalTempFile, Directory tempDir) async {
     final networkProvider = Provider.of<NetworkProvider>(context, listen: false);
 
     if (!await networkProvider.isFullyConnected()) {
-      throw Exception('서버 연결이 불안정합니다. 네트워크 상태를 확인해주세요.');
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => CaptureRetryScreen()),
+      );
+      return;
     }
 
     try {
-      final compressedFile = await _compressImage(imageFile);
+      final compressedFile = await _compressImage(originalTempFile);
       if (compressedFile == null) throw Exception('이미지 압축 실패');
 
       final response = await networkProvider.uploadImage(compressedFile);
@@ -208,42 +209,43 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
 
         final decodedData = json.decode(response.body);
         if (!decodedData.containsKey('image')) {
-          throw Exception('서버 응답에 세그멘테이션 이미지 없음');
+          throw Exception('서버 응답에 이미지 없음');
         }
 
-        // ✅ 서버에서 가공된 이미지 수신
+        // ✅ 서버에서 가공된 이미지 저장
         final imageBytes = base64Decode(decodedData['image']);
-        final tempDir = await getTemporaryDirectory();
-        final segmentedPath = path.join(tempDir.path, 'segmented_${DateTime.now().millisecondsSinceEpoch}.png');
+        final String segmentedTempPath = path.join(tempDir.path, 'segmented_${DateTime.now().millisecondsSinceEpoch}.png');
+        File segmentedTempFile = File(segmentedTempPath);
+        await segmentedTempFile.writeAsBytes(imageBytes);
+        print('세그멘테이션 이미지 저장 완료: $segmentedTempPath');
 
-        File segmentedFile = File(segmentedPath);
-        await segmentedFile.writeAsBytes(imageBytes);
-        print('세그멘테이션 이미지 저장 완료: $segmentedPath');
-
-        // ✅ 가공된 이미지 수신 후 원본 이미지 삭제
-        await compressedFile.delete();
-        await imageFile.delete();
-        print('원본 및 압축된 이미지 삭제 완료');
-
-        // ✅ CameraSelect 화면으로 이동 (여기서만 저장 가능)
+        // ✅ CameraSelect 화면으로 이동
         if (mounted) {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => CameraSelect(segmentedImagePath: segmentedPath),
+              builder: (context) => CameraSelect(
+                segmentedImagePath: segmentedTempPath,
+                originalImagePath: originalTempFile.path,
+              ),
             ),
           );
         }
       } else {
-        print('서버 응답 오류: ${response.statusCode}');
+        throw Exception('서버 응답 오류: ${response.statusCode}');
       }
     } catch (e) {
       print('[에러] 이미지 처리 실패: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('이미지 처리 실패: $e')),
+
+      // ✅ 서버 응답 실패 시 '촬영 실패' 화면으로 이동
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => CaptureRetryScreen()),
       );
     }
   }
+
+
   // 카메라 설정을 적용하는 함수
   Future<void> _configureCameraSettings(CameraController controller) async {
     try {

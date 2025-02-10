@@ -6,8 +6,14 @@ import 'setting/settings_provider.dart';
 
 class CameraSelect extends StatefulWidget {
   final String segmentedImagePath; // ✅ 세그멘테이션 이미지 경로
+  final String originalImagePath;  // ✅ 원본 이미지 경로
 
-  const CameraSelect({Key? key, required this.segmentedImagePath}) : super(key: key);
+  const CameraSelect({
+    Key? key,
+    required this.segmentedImagePath,
+    required this.originalImagePath,
+  }) : super(key: key);
+
 
   @override
   _CameraSelectState createState() => _CameraSelectState();
@@ -33,42 +39,42 @@ class _CameraSelectState extends State<CameraSelect> {
 
     try {
       final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
-      
-      // 저장할 폴더 가져오기
+
+      // ✅ 영구 저장 경로 설정
       String saveDirectory = settingsProvider.savePath;
       if (!await settingsProvider.validateSavePath(saveDirectory)) {
         print('저장 경로 검증 실패. 기본 경로 사용');
         saveDirectory = '/storage/emulated/0/Pictures/AnimalSegmentation';
       }
 
-      // 폴더가 없으면 생성
       final directory = Directory(saveDirectory);
       if (!await directory.exists()) {
         await directory.create(recursive: true);
       }
 
-      // 저장할 파일 경로 설정
-      final String saveFileName = 'segmented_${DateTime.now().millisecondsSinceEpoch}.png';
-      final String saveFilePath = path.join(saveDirectory, saveFileName);
-      
-      // 기존 이미지 파일을 새로운 위치로 복사
-      final File originalFile = File(widget.segmentedImagePath);
-      await originalFile.copy(saveFilePath);
+      // ✅ 원본 이미지 저장 (original_xxx.jpg)
+      final String originalSavePath = path.join(saveDirectory, 'original_${DateTime.now().millisecondsSinceEpoch}.jpg');
+      await File(widget.originalImagePath).copy(originalSavePath);
 
-      print('저장 성공: $saveFilePath');
+      // ✅ 세그멘테이션 이미지 저장 (segmented_xxx.png)
+      final String segmentedSavePath = path.join(saveDirectory, 'segmented_${DateTime.now().millisecondsSinceEpoch}.png');
+      await File(widget.segmentedImagePath).copy(segmentedSavePath);
+
+      print('저장 성공: $originalSavePath & $segmentedSavePath');
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('파일 저장 완료! \n위치: $saveFilePath'))
+          SnackBar(content: Text('파일 저장 완료! \n위치: $saveDirectory'))
       );
-      
+
       Navigator.pop(context); // 저장 후 이전 화면으로 이동
     } catch (e) {
       print('파일 저장 실패: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('파일 저장 실패: $e'), backgroundColor: Colors.red)
+          SnackBar(content: Text('파일 저장 실패: $e'), backgroundColor: Colors.red)
       );
     }
   }
+
 
   Widget _buildImageCard(String title, String imagePath) {
     return Padding(
@@ -122,9 +128,12 @@ class _CameraSelectState extends State<CameraSelect> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // ✅ 원본 이미지 표시
+            _buildImageCard('원본 사진', widget.originalImagePath),
+            SizedBox(height: 20),
             // ✅ 세그멘테이션된 이미지만 표시
             _buildImageCard('세그멘테이션 결과', widget.segmentedImagePath),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
 
             // 닉네임 입력
             TextField(

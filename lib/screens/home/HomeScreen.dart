@@ -1,4 +1,3 @@
-import 'package:animalgo/screens/login/LoginScreen.dart';
 import 'package:flutter/material.dart';
 import 'FriendList.dart'; // FriendList 임포트
 import '../../components/BottomBar.dart'; // BottomNavBar 컴포넌트 임포트
@@ -85,11 +84,9 @@ class HomeScreen extends StatelessWidget {
         backgroundColor: Colors.black,
         child: Icon(Icons.camera_alt, color: Colors.white),
       ),
-      //하단 네비게이션 바
       bottomNavigationBar: Bottombar(
         currentIndex: 0,
         onTabSelected: (index) {
-          print(index);
           switch (index) {
             case 0:
               Navigator.pushReplacement(
@@ -116,7 +113,7 @@ class HomeScreen extends StatelessWidget {
                 context,
                 PageRouteBuilder(
                   pageBuilder: (context, animation, secondaryAnimation) =>
-                      LoginScreen(),
+                      HomeScreen(),
                   transitionDuration: Duration.zero,
                 ),
               );
@@ -126,7 +123,7 @@ class HomeScreen extends StatelessWidget {
                 context,
                 PageRouteBuilder(
                   pageBuilder: (context, animation, secondaryAnimation) =>
-                      LoginScreen(),
+                      HomeScreen(),
                   transitionDuration: Duration.zero,
                 ),
               );
