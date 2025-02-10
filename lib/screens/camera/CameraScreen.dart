@@ -36,8 +36,8 @@ class _CameraScreenState extends State<CameraScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("카메라 촬영")),
-      body: Center(child: Text("카메라를 준비 중입니다...")),
+      // appBar: AppBar(title: Text("카메라 촬영")),
+      // body: Center(child: Text("카메라를 준비 중입니다...")),
     );
   }
 }

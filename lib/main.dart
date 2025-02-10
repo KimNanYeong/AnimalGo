@@ -4,17 +4,18 @@ import 'package:flutter/services.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,  // 세로 모드로 고정
   ]);
   runApp(MyApp());
 }
 
-class MyApp extends StatelessWidget{
+class MyApp extends StatelessWidget{                               
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Navigation',
+      title: 'Flutter Navigation',                                                                          
       initialRoute: AppRouter.home,
       onGenerateRoute: AppRouter.generateRoute,
     );
@@ -22,8 +23,7 @@ class MyApp extends StatelessWidget{
 }
 
 // class MyApp extends StatelessWidget {
-//   const MyApp({super.key});
-
+//   const MyApp({super.key});                              
 //   // This widget is the root of your application.
 //   @override
 //   Widget build(BuildContext context) {
