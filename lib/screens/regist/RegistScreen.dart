@@ -19,6 +19,9 @@ class _RegistScreenState extends State<RegistScreen> {
   bool _obscureText1 = true;
   bool _obscureText2 = true;
 
+  String? _passwordMismatchMessage;
+  bool _isValid = true;
+
   void _togglePasswordVisibility1() {
     setState(() {
       _obscureText1 = !_obscureText1;
@@ -48,6 +51,9 @@ class _RegistScreenState extends State<RegistScreen> {
     _nicknameFocusNode.addListener(() {
       setState(() {});
     });
+
+    _passwordController.addListener(_checkPassword);
+    _confirmPasswordController.addListener(_checkPassword);
   }
 
   @override
@@ -57,6 +63,22 @@ class _RegistScreenState extends State<RegistScreen> {
     _confirmPasswordFocusNode.dispose();
     _nicknameFocusNode.dispose();
     super.dispose();
+  }
+
+  void _checkPassword(){
+    print(_passwordController.text == '');
+    print(_confirmPasswordController.text == '');
+    if (_passwordController.text != _confirmPasswordController.text) {
+      setState(() {
+        _passwordMismatchMessage = '비밀번호가 일치하지 않습니다.';
+        _isValid = false;
+      });
+    } else {
+      setState(() {
+        _passwordMismatchMessage = null; // 일치하면 메시지 제거
+        _isValid = true;
+      });
+    }
   }
 
   @override
@@ -80,7 +102,7 @@ class _RegistScreenState extends State<RegistScreen> {
               style: TextStyle(color : Colors.black),
               decoration: InputDecoration(
                 labelText: '아이디',
-                
+                labelStyle: TextStyle(color: Colors.black),
                 border: OutlineInputBorder(),
                 enabledBorder: OutlineInputBorder(
                   borderSide: BorderSide(
@@ -102,15 +124,16 @@ class _RegistScreenState extends State<RegistScreen> {
               style: TextStyle(color : Colors.black),
               decoration: InputDecoration(
                 labelText: '패스워드',
+                labelStyle: TextStyle(color: Colors.black),
                 border: OutlineInputBorder(),
                 enabledBorder: OutlineInputBorder(
                   borderSide: BorderSide(
-                    // color: _passwordFocusNode.hasFocus ? Colors.blue : Colors.grey,
+                    color : _confirmPasswordController.text == '' && _passwordController.text == '' ? Colors.black : (_isValid ? Colors.blue : Colors.red),
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderSide: BorderSide(
-                    color: Colors.black,
+                    color : _confirmPasswordController.text == '' && _passwordController.text == '' ? Colors.black : (_isValid ? Colors.blue : Colors.red),
                   ),
                 ),
                 suffixIcon: IconButton(
@@ -129,15 +152,17 @@ class _RegistScreenState extends State<RegistScreen> {
               style: TextStyle(color : Colors.black),
               decoration: InputDecoration(
                 labelText: '패스워드 확인',
+                labelStyle: TextStyle(color: Colors.black),
                 border: OutlineInputBorder(),
                 enabledBorder: OutlineInputBorder(
                   borderSide: BorderSide(
-                    // color: _confirmPasswordFocusNode.hasFocus ? Colors.blue : Colors.grey,
+                    color : _confirmPasswordController.text == '' && _passwordController.text == '' ? Colors.black : (_isValid ? Colors.blue : Colors.red),
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderSide: BorderSide(
-                    color: Colors.black,
+                    // color: _isValid && _confirmPasswordController.text != '' && _passwordController.text != '' ? Colors.blue : Colors.red,
+                    color : _confirmPasswordController.text == '' && _passwordController.text == '' ? Colors.black : (_isValid ? Colors.blue : Colors.red),
                   ),
                 ),
                 suffixIcon: IconButton(
@@ -155,6 +180,7 @@ class _RegistScreenState extends State<RegistScreen> {
               style: TextStyle(color : Colors.black),
               decoration: InputDecoration(
                 labelText: '닉네임',
+                labelStyle: TextStyle(color: Colors.black),
                 border: OutlineInputBorder(),
                 enabledBorder: OutlineInputBorder(
                   borderSide: BorderSide(
@@ -188,6 +214,7 @@ class _RegistScreenState extends State<RegistScreen> {
                 ),
               ),
             ),
+            SizedBox(height: 30),
           ],
         ),
       ),
