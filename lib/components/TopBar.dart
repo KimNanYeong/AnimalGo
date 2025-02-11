@@ -16,6 +16,7 @@ class Topbar extends StatelessWidget implements PreferredSizeWidget {
       scrolledUnderElevation: 0,
       backgroundColor: Colors.white,
       elevation: 0,
+      leadingWidth: showBackButton ? null : 0, // leading이 없을 때 공간 제거
       leading: showBackButton // showBackButton이 true이면 뒤로가기 아이콘 노출
           ? IconButton(
               icon: Icon(Icons.arrow_back, color: Colors.black),
@@ -23,7 +24,7 @@ class Topbar extends StatelessWidget implements PreferredSizeWidget {
                 Navigator.pop(context); // 이전 화면으로 이동
               },
             )
-          : null, // false면 leading을 null로 설정하여 아이콘 미노출
+          : Container(), // false면 leading을 null로 설정하여 아이콘 미노출
       title: Align(
         alignment: Alignment.centerLeft,
         child: Text(

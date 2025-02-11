@@ -1,4 +1,7 @@
+import 'package:animalgo/components/SnackbarHelper.dart';
+import 'package:animalgo/screens/login/LoginScreen.dart';
 import 'package:flutter/material.dart';
+import 'package:animalgo/service/ApiService.dart';
 
 class RegistScreen extends StatefulWidget {  
   @override
@@ -65,19 +68,78 @@ class _RegistScreenState extends State<RegistScreen> {
     super.dispose();
   }
 
-  void _checkPassword(){
-    print(_passwordController.text == '');
-    print(_confirmPasswordController.text == '');
+  bool _checkPassword(){
     if (_passwordController.text != _confirmPasswordController.text) {
       setState(() {
-        _passwordMismatchMessage = '비밀번호가 일치하지 않습니다.';
+        // _passwordMismatchMessage = '비밀번호가 일치하지 않습니다.';
         _isValid = false;
       });
+      // SnackbarHelper.showSnackbar(context, "비밀번호가 일치하지 않")
+      return false;
     } else {
       setState(() {
-        _passwordMismatchMessage = null; // 일치하면 메시지 제거
+        // _passwordMismatchMessage = null; // 일치하면 메시지 제거
         _isValid = true;
       });
+      return true;
+    }
+  }
+
+   void _register() async {
+    // 회원가입 로직 추가
+    final String id = _idController.text;
+    final String password = _passwordController.text;
+    final String nickname = _nicknameController.text;
+
+    if(id.isEmpty){
+      SnackbarHelper.showSnackbar(context, "아이디를 입력해주세요.");
+      return;
+    }
+
+    if(password.isEmpty){
+      SnackbarHelper.showSnackbar(context, "비밀번호를 입력해주세요.");
+      return;
+    }
+
+    if(_confirmPasswordController.text.isEmpty){
+      SnackbarHelper.showSnackbar(context, "비밀번호 확인을 입력해주세요.");
+      return;
+    }
+
+    if(!_checkPassword()){
+      SnackbarHelper.showSnackbar(context, "비밀번호가 일치하지 않습니다.");
+      return;
+    };
+
+    if(nickname.isEmpty){
+      SnackbarHelper.showSnackbar(context, "닉네임을 입력해주세요.");
+      return;
+    }
+
+    try{
+      Map<String,dynamic> response = await ApiService().post(
+        "/login",
+        data: {
+          "id": id,
+          "password": password,
+          "nickname": nickname,
+        },
+      );
+
+      if(!response['result']){
+        SnackbarHelper.showSnackbar(context, '회원가입에 실패했습니다.');
+        return;
+      }
+      Navigator.pushReplacement(
+              context,
+              PageRouteBuilder(
+                pageBuilder: (context, animation, secondaryAnimation) =>
+                    LoginScreen(),
+                transitionDuration: Duration.zero,
+              ),
+            );
+    }catch(e){
+      SnackbarHelper.showSnackbar(context, "회원가입에 실패했습니다.");
     }
   }
 
@@ -89,6 +151,12 @@ class _RegistScreenState extends State<RegistScreen> {
         backgroundColor: Colors.white,
         title: Text('회원가입', style: TextStyle(color: Colors.black)),
         iconTheme: IconThemeData(color: Colors.black),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -197,9 +265,7 @@ class _RegistScreenState extends State<RegistScreen> {
             SizedBox(height: 32),
             Spacer(),
             ElevatedButton(
-              onPressed: () {
-                // 회원가입 로직 추가
-              },
+              onPressed: _register,
               child: const Text(
                 '회원가입',
                 style: TextStyle(color: Colors.white),
