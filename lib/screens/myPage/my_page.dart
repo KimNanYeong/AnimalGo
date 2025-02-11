@@ -23,7 +23,9 @@ class _MyPage extends State<MyPage> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
+        backgroundColor: Colors.white,
         title: Text('마이 페이지'),
         actions: [
           IconButton(
