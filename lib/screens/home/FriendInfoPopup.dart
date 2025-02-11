@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../character/CharacterScreen.dart';
 
 class FriendInfoPopup extends StatelessWidget {
   final String friendName;
@@ -13,7 +14,6 @@ class FriendInfoPopup extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width; // 화면 너비
-
     return GestureDetector(
       onTap: () {
         // 바깥쪽 클릭 시 팝업 닫기
@@ -80,6 +80,7 @@ class FriendInfoPopup extends StatelessWidget {
                         ElevatedButton(
                           onPressed: () {
                             // 상세보기 버튼 동작 추가
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => CharacterScreen()));
                             print('상세보기 버튼 눌림');
                           },
                           style: ElevatedButton.styleFrom(
