@@ -20,11 +20,17 @@ class _LoginScreenState extends State<LoginScreen>{
   @override
   void initState(){
     _idFocusNode.addListener(() {
-      setState(() {});
+      setState(() {
+        _idController.text = '';
+      });
     });
     _passwordFocusNode.addListener(() {
-      setState(() {});
+      setState(() {
+        _passwordController.text = '';
+      });
     });
+    
+    
   }
 
   @override
@@ -73,7 +79,7 @@ class _LoginScreenState extends State<LoginScreen>{
       //     backgroundColor: Colors.red,
       //   ),
       // );
-      // return;
+      return;
     }
 
     try {
