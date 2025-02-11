@@ -1,10 +1,10 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:path/path.dart' as path;
 import 'package:provider/provider.dart';
 import 'setting/settings_provider.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 
 class CameraSelect extends StatefulWidget {
   final String segmentedImagePath; // ✅ 세그멘테이션 이미지 경로
@@ -38,36 +38,36 @@ class _CameraSelectState extends State<CameraSelect> {
   //     );
   //     return;
   //   }
-
+  //
   //   try {
   //     final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
-
+  //
   //     // ✅ 영구 저장 경로 설정
   //     String saveDirectory = settingsProvider.savePath;
   //     if (!await settingsProvider.validateSavePath(saveDirectory)) {
   //       print('저장 경로 검증 실패. 기본 경로 사용');
   //       saveDirectory = '/storage/emulated/0/Pictures/AnimalSegmentation';
   //     }
-
+  //
   //     final directory = Directory(saveDirectory);
   //     if (!await directory.exists()) {
   //       await directory.create(recursive: true);
   //     }
-
+  //
   //     // ✅ 원본 이미지 저장 (original_xxx.jpg)
   //     final String originalSavePath = path.join(saveDirectory, 'original_${DateTime.now().millisecondsSinceEpoch}.jpg');
   //     await File(widget.originalImagePath).copy(originalSavePath);
-
+  //
   //     // ✅ 세그멘테이션 이미지 저장 (segmented_xxx.png)
   //     final String segmentedSavePath = path.join(saveDirectory, 'segmented_${DateTime.now().millisecondsSinceEpoch}.png');
   //     await File(widget.segmentedImagePath).copy(segmentedSavePath);
-
+  //
   //     print('저장 성공: $originalSavePath & $segmentedSavePath');
-
+  //
   //     ScaffoldMessenger.of(context).showSnackBar(
   //         SnackBar(content: Text('파일 저장 완료! \n위치: $saveDirectory'))
   //     );
-
+  //
   //     Navigator.pop(context); // 저장 후 이전 화면으로 이동
   //   } catch (e) {
   //     print('파일 저장 실패: $e');
@@ -78,46 +78,46 @@ class _CameraSelectState extends State<CameraSelect> {
   // }
   /// 서버로 데이터 전송
   Future<void> _saveDataToServer() async {
-  final nickname = nicknameController.text.trim();
-  if (nickname.isEmpty || selectedPersonality == null || selectedAppearance == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('닉네임, 성격, 외모를 모두 입력하세요.'))
-    );
-    return;
-  }
-
-  try {
-    // ✅ API 요청 보낼 데이터
-    final Map<String, dynamic> requestData = {
-      "nickname": nickname,
-      "personality": selectedPersonality,
-      "appearance": selectedAppearance
-    };
-
-    // ✅ 서버 주소 (다른 컴퓨터의 IP 사용)
-    final String serverUrl = "http://<서버_IP>:8000/save_user";
-
-    final response = await http.post(
-      Uri.parse(serverUrl),
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode(requestData),
-    );
-
-    if (response.statusCode == 200) {
-      print('서버에 데이터 저장 성공: ${response.body}');
+    final nickname = nicknameController.text.trim();
+    if (nickname.isEmpty || selectedPersonality == null || selectedAppearance == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('서버에 데이터 저장 완료!'))
+          SnackBar(content: Text('닉네임, 성격, 외모를 모두 입력하세요.'))
       );
-    } else {
-      throw Exception('서버 오류: ${response.statusCode}');
+      return;
     }
-  } catch (e) {
-    print('서버 저장 실패: $e');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('서버 저장 실패: $e'), backgroundColor: Colors.red)
-    );
+
+    try {
+      // ✅ API 요청 보낼 데이터
+      final Map<String, dynamic> requestData = {
+        "nickname": nickname,
+        "personality": selectedPersonality,
+        "appearance": selectedAppearance
+      };
+
+      // ✅ 서버 주소 (다른 컴퓨터의 IP 사용)
+      final String serverUrl = "http://<서버_IP>:8000/save_user";
+
+      final response = await http.post(
+        Uri.parse(serverUrl),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(requestData),
+      );
+
+      if (response.statusCode == 200) {
+        print('서버에 데이터 저장 성공: ${response.body}');
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('서버에 데이터 저장 완료!'))
+        );
+      } else {
+        throw Exception('서버 오류: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('서버 저장 실패: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('서버 저장 실패: $e'), backgroundColor: Colors.red)
+      );
+    }
   }
-}
 
 
   Widget _buildImageCard(String title, String imagePath) {
@@ -234,7 +234,7 @@ class _CameraSelectState extends State<CameraSelect> {
             // ✅ 저장 버튼 (저장 함수 호출)
             Center(
               child: ElevatedButton(
-                onPressed: _saveDataToServer,  //_saveData는 사용자의 phone에 데이터를 저장함,_saveDataToServer는 서버쪽에 데이터를 보냄
+                onPressed: _saveDataToServer,
                 child: const Text('저장'),
               ),
             ),

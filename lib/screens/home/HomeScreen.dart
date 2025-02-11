@@ -4,6 +4,7 @@ import '../../components/BottomBar.dart'; // BottomNavBar 컴포넌트 임포트
 import '../../components/TopBar.dart'; // CustomAppBar 임포트
 import '../../service/ApiService.dart';
 import '../camera/CameraScreen.dart';
+import '../myPage/my_page.dart';
 
 class HomeScreen extends StatelessWidget {
   final List<Map<String, String>> friends = [
@@ -109,7 +110,7 @@ class HomeScreen extends StatelessWidget {
               );
               break;
             case 2:
-              Navigator.push(
+              Navigator.pushReplacement(
                 context,
                 PageRouteBuilder(
                   pageBuilder: (context, animation, secondaryAnimation) =>
@@ -119,11 +120,11 @@ class HomeScreen extends StatelessWidget {
               );
               break;
             case 3:
-              Navigator.push(
+              Navigator.pushReplacement(
                 context,
                 PageRouteBuilder(
                   pageBuilder: (context, animation, secondaryAnimation) =>
-                      HomeScreen(),
+                      MyPage(),
                   transitionDuration: Duration.zero,
                 ),
               );

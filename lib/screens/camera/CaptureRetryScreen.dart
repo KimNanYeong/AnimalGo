@@ -13,7 +13,7 @@ class CaptureRetryScreen extends StatelessWidget {
             Icon(Icons.error_outline, color: Colors.red, size: 48),
             SizedBox(height: 16),
             Text(
-              '서버 응답이 없습니다. 다시 촬영해주세요.',
+              '동물이 탐지되지 않습니다. 다시 촬영해주세요.',
               style: TextStyle(fontSize: 18),
               textAlign: TextAlign.center,
             ),

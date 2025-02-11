@@ -25,10 +25,10 @@ class Bottombar extends StatelessWidget {
           icon: Icon(Icons.home),
           label: '메인',
         ),
-        // BottomNavigationBarItem(
-        //   icon: Icon(Icons.location_on),
-        //   label: '마을페이지',
-        // ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.location_on),
+          label: '마을페이지',
+        ),
         BottomNavigationBarItem(
           icon: Icon(Icons.message),
           label: '채팅',

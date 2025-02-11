@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/material.dart';
 
 class ApiService {
   late final Dio _dio;
@@ -18,6 +17,7 @@ class ApiService {
   /// GET 요청 (예: 친구 목록 가져오기)
   Future<Response> get(String endpoint, {Map<String, dynamic>? params}) async {
     // bool isLoading = true; // ✅ 로딩 상태
+
     try {
       Response response = await _dio.get(endpoint, queryParameters: params);
       return response;
