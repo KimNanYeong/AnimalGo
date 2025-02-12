@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'ChatRoomScreen.dart'; // ✅ 채팅방 화면 추가
-import '../camera/CameraScreen.dart'; // ✅ 카메라 화면 추가
-import '../../components/BottomBar.dart'; // ✅ 하단 네비게이션 바 추가
+import 'ChatRoomScreen.dart';
+import '../camera/CameraScreen.dart';
+import '../../components/BottomBar.dart';
 import '../myPage/my_page.dart';
-import '../home/HomeScreen.dart'; // ✅ 홈 화면 추가
+import '../home/HomeScreen.dart';
 
 class ChatListScreen extends StatefulWidget {
   const ChatListScreen({super.key});
@@ -32,26 +32,36 @@ class _ChatListScreenState extends State<ChatListScreen> {
     },
   ];
 
-  void _updateLastMessage(String friendName, String newMessage, String newTime) {
-    setState(() {
-      for (var chat in chatRooms) {
-        if (chat["name"] == friendName) {
-          chat["lastMessage"] = newMessage;
-          chat["time"] = newTime;
-
-          if (chat["messages"] == null || chat["messages"] is! List<Map<String, String>>) {
-            chat["messages"] = <Map<String, String>>[];
-          }
-
-          (chat["messages"] as List<Map<String, String>>).add({
-            "text": newMessage,
-            "time": newTime,
-            "isSentByMe": "true",
-          });
-          break;
-        }
-      }
-    });
+  void _leaveChat(int index) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("채팅방 나가기"),
+          content: Text("${chatRooms[index]["name"]} 채팅방을 나가시겠습니까?"),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text("취소"),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  chatRooms.removeAt(index);
+                });
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("${chatRooms[index]["name"]} 채팅방을 나갔습니다.")),
+                );
+              },
+              child: Text("나가기", style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -59,55 +69,69 @@ class _ChatListScreenState extends State<ChatListScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text("채팅 목록", style: TextStyle(fontWeight: FontWeight.bold)), // ✅ 글씨 강조
-        backgroundColor: Colors.white, // ✅ 완전 흰색 배경
-        foregroundColor: Colors.black, // ✅ 글씨 및 아이콘 검은색 유지
-        elevation: 0, // ✅ 그림자 제거 (회색 배경 문제 해결)
-        shadowColor: Colors.transparent, // ✅ 혹시 남아있는 그림자 제거
-        actions: [
-
-          IconButton(
-            icon: Icon(Icons.notifications),
-            onPressed: () {
-              // TODO: 설정 화면 이동
-            },
-          ),
-        ],
+        title: Text("채팅 목록", style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
+        shadowColor: Colors.transparent,
       ),
       body: ListView.builder(
         itemCount: chatRooms.length,
         itemBuilder: (context, index) {
-          return ListTile(
-            leading: CircleAvatar(
-              backgroundColor: Colors.grey[300],
-              child: Icon(Icons.person, color: Colors.black),
-            ),
-            title: Text(chatRooms[index]["name"]!),
-            subtitle: Text(chatRooms[index]["lastMessage"]!), // ✅ 마지막 메시지 표시
-            trailing: Text(chatRooms[index]["time"]!, style: TextStyle(color: Colors.grey)),
-            onTap: () {
-              List<Map<String, String>> formattedMessages =
-                  (chatRooms[index]["messages"] as List<dynamic>?)?.map((msg) {
-                    return {
-                      "text": msg["text"].toString(),
-                      "time": msg["time"].toString(),
-                      "isSentByMe": msg["isSentByMe"].toString(),
-                    };
-                  }).toList() ?? [];
-
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ChatRoomScreen(
-                    friendName: chatRooms[index]["name"]!,
-                    initialMessages: formattedMessages,
-                    onMessageSent: (newMessage, newTime) {
-                      _updateLastMessage(chatRooms[index]["name"]!, newMessage, newTime);
-                    },
+          return Dismissible(
+            key: Key(chatRooms[index]["name"]),
+            direction: DismissDirection.endToStart,
+            background: Container(
+              color: Colors.red,
+              alignment: Alignment.centerRight,
+              padding: EdgeInsets.only(right: 20),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Text(
+                    "나가기",
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                   ),
-                ),
-              );
+                  SizedBox(width: 10),
+                  Icon(Icons.exit_to_app, color: Colors.white),
+                ],
+              ),
+            ),
+            confirmDismiss: (direction) async {
+              _leaveChat(index);
+              return false; // ✅ 다이얼로그에서 직접 삭제 처리하기 때문에 여기선 false 반환
             },
+            child: ListTile(
+              leading: CircleAvatar(
+                backgroundColor: Colors.grey[300],
+                child: Icon(Icons.person, color: Colors.black),
+              ),
+              title: Text(chatRooms[index]["name"]!),
+              subtitle: Text(chatRooms[index]["lastMessage"]!),
+              trailing: Text(chatRooms[index]["time"]!, style: TextStyle(color: Colors.grey)),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ChatRoomScreen(
+                      friendName: chatRooms[index]["name"]!,
+                      initialMessages: chatRooms[index]["messages"] as List<Map<String, String>>,
+                      onMessageSent: (newMessage, newTime) {
+                        setState(() {
+                          chatRooms[index]["lastMessage"] = newMessage;
+                          chatRooms[index]["time"] = newTime;
+                          (chatRooms[index]["messages"] as List<Map<String, String>>).add({
+                            "text": newMessage,
+                            "time": newTime,
+                            "isSentByMe": "true",
+                          });
+                        });
+                      },
+                    ),
+                  ),
+                );
+              },
+            ),
           );
         },
       ),
@@ -122,7 +146,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
         child: Icon(Icons.camera_alt, color: Colors.white),
       ),
       bottomNavigationBar: Bottombar(
-        currentIndex: 2, // ✅ 현재 페이지가 채팅 리스트 화면이므로 2로 설정
+        currentIndex: 2,
         onTabSelected: (index) {
           switch (index) {
             case 0:
@@ -138,21 +162,12 @@ class _ChatListScreenState extends State<ChatListScreen> {
               Navigator.pushReplacement(
                 context,
                 PageRouteBuilder(
-                  pageBuilder: (context, animation, secondaryAnimation) => HomeScreen(),
-                  transitionDuration: Duration.zero,
-                ),
-              );
-              break;
-            case 2:
-              Navigator.pushReplacement(
-                context,
-                PageRouteBuilder(
                   pageBuilder: (context, animation, secondaryAnimation) => ChatListScreen(),
                   transitionDuration: Duration.zero,
                 ),
               );
               break;
-            case 3:
+            case 2:
               Navigator.pushReplacement(
                 context,
                 PageRouteBuilder(
