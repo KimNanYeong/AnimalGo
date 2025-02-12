@@ -82,6 +82,9 @@ flutter:
     - assets/images/google.webp
     - assets/images/kakao.png
     - assets/images/naver.png
+    - assets/images/background.jpg
+    - assets/images/backgroundv1.jpg
+    - assets/images/backgroundv2.jpg
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
