@@ -7,6 +7,7 @@ import '../../components/TopBar.dart';
 import 'DeleteAccountScreen.dart';
 import 'EditProfileScreen.dart';
 import 'SettingsScreen.dart';
+import '../chat/ChatListScreen.dart'; // ✅ 채팅 리스트 화면 추가
 
 class MyPage extends StatefulWidget {
   @override
@@ -156,11 +157,11 @@ class _MyPage extends State<MyPage> with WidgetsBindingObserver {
                 ),
               );
               break;
-            case 2:
+            case 2: // ✅ 채팅 리스트 화면으로 이동하도록 수정
               Navigator.pushReplacement(
                 context,
                 PageRouteBuilder(
-                  pageBuilder: (context, animation, secondaryAnimation) => MyPage(),
+                  pageBuilder: (context, animation, secondaryAnimation) => ChatListScreen(), // ✅ 채팅 리스트 화면으로 변경
                   transitionDuration: Duration.zero,
                 ),
               );

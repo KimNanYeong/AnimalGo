@@ -6,6 +6,8 @@ import '../../service/ApiService.dart';
 import '../camera/CameraScreen.dart';
 import '../login/LoginScreen.dart';
 import '../myPage/my_page.dart';
+import '../chat/ChatListScreen.dart'; // ✅ 채팅 리스트 화면 추가
+
 
 class HomeScreen extends StatelessWidget {
   final List<Map<String, String>> friends = [
@@ -109,12 +111,12 @@ class HomeScreen extends StatelessWidget {
                 ),
               );
               break;
-            case 2:
+            case 2: // ✅ 채팅 리스트 화면으로 이동하도록 수정
               Navigator.pushReplacement(
                 context,
                 PageRouteBuilder(
                   pageBuilder: (context, animation, secondaryAnimation) =>
-                      HomeScreen(),
+                      ChatListScreen(), // ✅ 채팅 리스트 화면으로 변경
                   transitionDuration: Duration.zero,
                 ),
               );
