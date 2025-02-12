@@ -67,7 +67,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
         actions: [
 
           IconButton(
-            icon: Icon(Icons.settings),
+            icon: Icon(Icons.notifications),
             onPressed: () {
               // TODO: 설정 화면 이동
             },
