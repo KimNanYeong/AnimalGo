@@ -6,7 +6,7 @@ class ApiService {
   ApiService() {
     _dio = Dio(
       BaseOptions(
-        baseUrl: "http://192.168.10.124:8000", // ✅ 서버 기본 주소 설정
+        baseUrl: "http://192.168.0.67:8000", // ✅ 서버 기본 주소 설정
         connectTimeout: Duration(seconds: 10), // ✅ 연결 타임아웃 (10초)
         receiveTimeout: Duration(seconds: 10), // ✅ 응답 타임아웃 (10초)
         headers: {"Content-Type": "application/json"}, // ✅ 기본 헤더 설정

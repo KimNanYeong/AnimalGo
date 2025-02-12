@@ -14,16 +14,39 @@ class _CharacterscreenState extends State<CharacterScreen>{
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        
-        title: const Text("상세보기"),
+        backgroundColor: Colors.white,
+        // title: const Text("상세보기"),
         actions: [
           IconButton(
             icon: const CircleAvatar(
+              radius: 30,
               backgroundImage: AssetImage("assets/images/dog1.png"), // 프로필 이미지
             ),
             onPressed: () {
-              // 프로필 버튼 액션
+              showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return Dialog(
+                    backgroundColor: Colors.transparent, // 배경 투명
+                    child: GestureDetector(
+                      onTap: () => Navigator.pop(context), // 탭하면 닫힘
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          image: const DecorationImage(
+                            image: AssetImage("assets/images/dog1.png"),
+                            fit: BoxFit.contain, // 원본 비율 유지
+                          ),
+                        ),
+                        width: MediaQuery.of(context).size.width * 0.8, // 화면의 80% 크기
+                        height: MediaQuery.of(context).size.height * 0.5, // 화면의 50% 크기
+                      ),
+                    ),
+                  );
+                },
+              );
             },
           ),
         ],
@@ -49,7 +72,7 @@ class _CharacterscreenState extends State<CharacterScreen>{
                       children: const [
                         Text(
                           "닉네임",
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold),
                         ),
                         SizedBox(width: 5),
                         Icon(Icons.male, color: Colors.blue),
@@ -83,6 +106,7 @@ class _CharacterscreenState extends State<CharacterScreen>{
             GridView.count(
               crossAxisCount: 3,
               shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(),
               children: [
                 actionButton(Icons.pan_tool, "쓰다듬기", Colors.brown),
                 actionButton(Icons.food_bank, "먹이주기", Colors.orange),
