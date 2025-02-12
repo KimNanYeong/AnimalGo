@@ -167,11 +167,22 @@ class _ChatListScreenState extends State<ChatListScreen> {
                 ),
               );
               break;
-            case 2:
+            case 2: // ✅ 채팅 리스트 화면으로 이동하도록 수정
               Navigator.pushReplacement(
                 context,
                 PageRouteBuilder(
-                  pageBuilder: (context, animation, secondaryAnimation) => MyPage(),
+                  pageBuilder: (context, animation, secondaryAnimation) =>
+                      ChatListScreen(), // ✅ 채팅 리스트 화면으로 변경
+                  transitionDuration: Duration.zero,
+                ),
+              );
+              break;
+            case 3:
+              Navigator.pushReplacement(
+                context,
+                PageRouteBuilder(
+                  pageBuilder: (context, animation, secondaryAnimation) =>
+                      MyPage(),
                   transitionDuration: Duration.zero,
                 ),
               );
