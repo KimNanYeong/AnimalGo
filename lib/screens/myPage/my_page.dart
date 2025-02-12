@@ -8,6 +8,7 @@ import 'DeleteAccountScreen.dart';
 import 'EditProfileScreen.dart';
 import 'SettingsScreen.dart';
 import '../chat/ChatListScreen.dart'; // ✅ 채팅 리스트 화면 추가
+import 'package:animalgo/screens/village/VillageScreen.dart'; // ✅ 마을 화면 추가
 
 class MyPage extends StatefulWidget {
   @override
@@ -152,7 +153,7 @@ class _MyPage extends State<MyPage> with WidgetsBindingObserver {
               Navigator.pushReplacement(
                 context,
                 PageRouteBuilder(
-                  pageBuilder: (context, animation, secondaryAnimation) => HomeScreen(),
+                  pageBuilder: (context, animation, secondaryAnimation) => VillageScreen(),
                   transitionDuration: Duration.zero,
                 ),
               );
