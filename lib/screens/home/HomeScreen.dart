@@ -6,6 +6,7 @@ import '../../service/ApiService.dart';
 import '../camera/CameraScreen.dart';
 import '../login/LoginScreen.dart';
 import '../myPage/my_page.dart';
+import 'package:animalgo/screens/village/VillageScreen.dart';
 
 class HomeScreen extends StatelessWidget {
   final List<Map<String, String>> friends = [
@@ -104,7 +105,7 @@ class HomeScreen extends StatelessWidget {
                 context,
                 PageRouteBuilder(
                   pageBuilder: (context, animation, secondaryAnimation) =>
-                      HomeScreen(),
+                      VillageScreen(),
                   transitionDuration: Duration.zero,
                 ),
               );
