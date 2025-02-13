@@ -1,4 +1,3 @@
-import 'package:animalgo/screens/village/VillageScreen.dart';
 import 'package:flutter/material.dart';
 import 'ChatRoomScreen.dart';
 import '../camera/CameraScreen.dart';
