@@ -8,7 +8,6 @@ import 'DeleteAccountScreen.dart';
 import 'EditProfileScreen.dart';
 import 'SettingsScreen.dart';
 import '../chat/ChatListScreen.dart'; // ✅ 채팅 리스트 화면 추가
-import '../village_test/Village.dart';
 
 class MyPage extends StatefulWidget {
   @override
