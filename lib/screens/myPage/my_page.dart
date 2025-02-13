@@ -8,6 +8,7 @@ import 'DeleteAccountScreen.dart';
 import 'EditProfileScreen.dart';
 import 'SettingsScreen.dart';
 import '../chat/ChatListScreen.dart'; // ✅ 채팅 리스트 화면 추가
+import '../village_test/Village.dart';
 
 class MyPage extends StatefulWidget {
   @override
@@ -152,7 +153,7 @@ class _MyPage extends State<MyPage> with WidgetsBindingObserver {
               Navigator.pushReplacement(
                 context,
                 PageRouteBuilder(
-                  pageBuilder: (context, animation, secondaryAnimation) => HomeScreen(),
+                  pageBuilder: (context, animation, secondaryAnimation) => VillageScreen(),
                   transitionDuration: Duration.zero,
                 ),
               );
@@ -162,6 +163,16 @@ class _MyPage extends State<MyPage> with WidgetsBindingObserver {
                 context,
                 PageRouteBuilder(
                   pageBuilder: (context, animation, secondaryAnimation) => ChatListScreen(), // ✅ 채팅 리스트 화면으로 변경
+                  transitionDuration: Duration.zero,
+                ),
+              );
+              break;
+            case 3:
+              Navigator.pushReplacement(
+                context,
+                PageRouteBuilder(
+                  pageBuilder: (context, animation, secondaryAnimation) =>
+                      MyPage(),
                   transitionDuration: Duration.zero,
                 ),
               );

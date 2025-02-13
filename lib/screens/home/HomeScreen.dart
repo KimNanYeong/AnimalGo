@@ -7,7 +7,7 @@ import '../camera/CameraScreen.dart';
 import '../login/LoginScreen.dart';
 import '../myPage/my_page.dart';
 import '../chat/ChatListScreen.dart'; // ✅ 채팅 리스트 화면 추가
-import 'package:animalgo/screens/village/VillageScreen.dart';
+import '../village_test/Village.dart';
 
 class HomeScreen extends StatelessWidget {
   final List<Map<String, String>> friends = [

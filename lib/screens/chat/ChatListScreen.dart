@@ -4,6 +4,7 @@ import '../camera/CameraScreen.dart';
 import '../../components/BottomBar.dart';
 import '../myPage/my_page.dart';
 import '../home/HomeScreen.dart';
+import '../village_test/Village.dart';
 
 class ChatListScreen extends StatefulWidget {
   const ChatListScreen({super.key});
@@ -162,7 +163,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
               Navigator.pushReplacement(
                 context,
                 PageRouteBuilder(
-                  pageBuilder: (context, animation, secondaryAnimation) => ChatListScreen(),
+                  pageBuilder: (context, animation, secondaryAnimation) => VillageScreen(),
                   transitionDuration: Duration.zero,
                 ),
               );
