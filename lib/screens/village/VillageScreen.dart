@@ -1,3 +1,4 @@
+import 'package:animalgo/screens/chat/ChatListScreen.dart';
 import 'package:flutter/material.dart';
 import '../../components/BottomBar.dart'; // BottomNavBar 컴포넌트 임포트
 import '../../components/TopBar.dart'; // CustomAppBar 임포트
@@ -55,7 +56,7 @@ class _VillageScreenState extends State<VillageScreen>{
                 context,
                 PageRouteBuilder(
                   pageBuilder: (context, animation, secondaryAnimation) =>
-                      HomeScreen(),
+                      ChatListScreen(),
                   transitionDuration: Duration.zero,
                 ),
               );

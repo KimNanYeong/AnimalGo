@@ -1,3 +1,4 @@
+import 'package:animalgo/screens/village/VillageScreen.dart';
 import 'package:flutter/material.dart';
 import 'ChatRoomScreen.dart';
 import '../camera/CameraScreen.dart';
@@ -162,7 +163,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
               Navigator.pushReplacement(
                 context,
                 PageRouteBuilder(
-                  pageBuilder: (context, animation, secondaryAnimation) => ChatListScreen(),
+                  pageBuilder: (context, animation, secondaryAnimation) => VillageScreen(),
                   transitionDuration: Duration.zero,
                 ),
               );
