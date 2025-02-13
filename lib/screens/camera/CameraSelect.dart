@@ -24,10 +24,15 @@ class CameraSelect extends StatefulWidget {
 class _CameraSelectState extends State<CameraSelect> {
   String? selectedPersonality;
   String? selectedAppearance;
+  String? selectedAnimal;
   final TextEditingController nicknameController = TextEditingController();
 
   final List<String> personalityOptions = ['밝음', '차분함', '활발함', '조용함'];
   final List<String> appearanceOptions = ['귀여움', '멋짐', '상냥함', '강인함'];
+  // ✅ COCO 데이터셋의 일반적인 동물 종 목록
+  final List<String> animalOptions = [
+    '개', '고양이', '말', '양', '코끼리', '곰', '얼룩말', '기린', '소', '새'
+  ];
 
   /// ✅ 저장 함수
   // Future<void> _saveData() async {
@@ -76,35 +81,35 @@ class _CameraSelectState extends State<CameraSelect> {
   //     );
   //   }
   // }
-  /// 서버로 데이터 전송
+  /// 서버로 데이터 전송 (동물 종 포함)
   Future<void> _saveDataToServer() async {
     final nickname = nicknameController.text.trim();
-    if (nickname.isEmpty || selectedPersonality == null || selectedAppearance == null) {
+    if (nickname.isEmpty || selectedPersonality == null || selectedAppearance == null || selectedAnimal == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('닉네임, 성격, 외모를 모두 입력하세요.'))
+          SnackBar(content: Text('닉네임, 성격, 외모, 동물의 종을 모두 선택하세요.'))
       );
       return;
     }
 
     try {
-      // ✅ API 요청 보낼 데이터
-      final Map<String, dynamic> requestData = {
-        "nickname": nickname,
-        "personality": selectedPersonality,
-        "appearance": selectedAppearance
-      };
-
-      // ✅ 서버 주소 (다른 컴퓨터의 IP 사용)
       final String serverUrl = "http://<서버_IP>:8000/save_user";
 
-      final response = await http.post(
-        Uri.parse(serverUrl),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode(requestData),
-      );
+      var request = http.MultipartRequest('POST', Uri.parse(serverUrl));
+
+      // ✅ 텍스트 데이터 추가
+      request.fields['nickname'] = nickname;
+      request.fields['personality'] = selectedPersonality!;
+      request.fields['appearance'] = selectedAppearance!;
+      request.fields['animal_species'] = selectedAnimal!; // 🆕 동물의 종 추가
+
+      // ✅ 이미지 파일 추가
+      request.files.add(await http.MultipartFile.fromPath('original_image', widget.originalImagePath));
+      request.files.add(await http.MultipartFile.fromPath('segmented_image', widget.segmentedImagePath));
+
+      var response = await request.send();
 
       if (response.statusCode == 200) {
-        print('서버에 데이터 저장 성공: ${response.body}');
+        print('서버에 데이터 저장 성공');
         ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('서버에 데이터 저장 완료!'))
         );
@@ -166,7 +171,10 @@ class _CameraSelectState extends State<CameraSelect> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('정보 입력')),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+          backgroundColor: Colors.white,
+          title: const Text('정보 입력')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -226,6 +234,27 @@ class _CameraSelectState extends State<CameraSelect> {
               onChanged: (String? newValue) {
                 setState(() {
                   selectedAppearance = newValue;
+                });
+              },
+            ),
+            const SizedBox(height: 20),
+
+            // ✅ 동물 종 선택 (COCO 데이터셋 기반)
+            DropdownButtonFormField<String>(
+              decoration: const InputDecoration(
+                labelText: '동물의 종 선택',
+                border: OutlineInputBorder(),
+              ),
+              value: selectedAnimal,
+              items: animalOptions.map((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+              onChanged: (String? newValue) {
+                setState(() {
+                  selectedAnimal = newValue;
                 });
               },
             ),
