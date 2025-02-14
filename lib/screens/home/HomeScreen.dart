@@ -7,66 +7,86 @@ import '../camera/CameraScreen.dart';
 import '../login/LoginScreen.dart';
 import '../myPage/my_page.dart';
 import '../chat/ChatListScreen.dart'; // ✅ 채팅 리스트 화면 추가
+import 'package:shared_preferences/shared_preferences.dart';
 import '../village_test/Village.dart';
 
-class HomeScreen extends StatelessWidget {
-  final List<Map<String, String>> friends = [
-    {"name": "복실이", "image": "assets/images/dog1.png"},
-    {"name": "별이", "image": "assets/images/dog2.png"},
-    {"name": "초코", "image": "assets/images/dog3.png"},
-    {"name": "구름", "image": "assets/images/dog1.png"},
-    {"name": "해피", "image": "assets/images/dog2.png"},
-    {"name": "뽀삐", "image": "assets/images/dog3.png"},
-    {"name": "토리", "image": "assets/images/dog1.png"},
-    {"name": "루루", "image": "assets/images/dog2.png"},
-  ];
+// class HomeScreen extends StatelessWidget {
+//   final List<Map<String, String>> friends = [
+//     {"name": "복실이", "image": "assets/images/dog1.png"},
+//     {"name": "별이", "image": "assets/images/dog2.png"},
+//     {"name": "초코", "image": "assets/images/dog3.png"},
+//     {"name": "구름", "image": "assets/images/dog1.png"},
+//     {"name": "해피", "image": "assets/images/dog2.png"},
+//     {"name": "뽀삐", "image": "assets/images/dog3.png"},
+//     {"name": "토리", "image": "assets/images/dog1.png"},
+//     {"name": "루루", "image": "assets/images/dog2.png"},
+//   ];
 
-// class HomeScreen extends StatefulWidget {
-//   const HomeScreen({Key? key}) : super(key: key);
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({Key? key}) : super(key: key);
 
-//   @override
-//   _HomeScreenState createState() => _HomeScreenState();
-// }
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
 
-// class _HomeScreenState extends State<HomeScreen> {
-//   List<Map<String, String>> friends = []; // ✅ 상태로 관리할 친구 목록
+class _HomeScreenState extends State<HomeScreen> {
+  // Navigater.pushReplacement(context,)
 
-//   @override
-//   void initState() {
-//     super.initState();
-//     _fetchFriends(); // 친구 목록 불러오기
-//   }
+  List<Map<String, String>> friends = []; // ✅ 상태로 관리할 친구 목록
 
-//   void _fetchFriends() async {
-//     try {
-//       var response = await ApiService().get(
-//         "/friends",
-//         params: {"userId": "1234"},
-//       );
+  @override
+  void initState() {
+    super.initState();
+    _checkSession();
+    // _fetchFriends(); // 친구 목록 불러오기
+  }
 
-//       setState(() {
-//         Map<String,dynamic> responseMap = response as Map<String, dynamic>;
+Future<void> _checkSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('cookie'); // ✅ 쿠키 값 가져오기
+
+    if (token == null || token.isEmpty) { 
+      // ✅ 토큰이 없으면 로그인 화면으로 이동
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => LoginScreen()),
+      );
+      return;
+    }
+
+    _fetchFriends(); // ✅ 토큰이 있으면 친구 목록 불러오기
+  }
+
+  void _fetchFriends() async {
+    try {
+      var response = await ApiService().get(
+        "/friends",
+        params: {"userId": "1234"},
+      );
+
+      setState(() {
+        Map<String,dynamic> responseMap = response as Map<String, dynamic>;
       
-//       // 2. friendList 키로 리스트 추출 (없으면 빈 리스트 사용)
-//         List<dynamic> friendList = responseMap['friendList'] ?? [];
+      // 2. friendList 키로 리스트 추출 (없으면 빈 리스트 사용)
+        List<dynamic> friendList = responseMap['friendList'] ?? [];
         
-//         friends = friendList.map<Map<String, String>>((friend) {
-//         return {
-//           "name": friend["name"] as String,
-//           "image": friend["image"] as String,
-//         };
-//       }).toList();
-//         // friends = (response as List).map((friend) {
-//         //   return {
-//         //     "name": friend["name"] as String,
-//         //     "image": friend["image"] as String,
-//         //   };
-//         // }).toList();
-//       });
-//     } catch (error) {
-//       print("친구 목록 불러오기 실패: $error");
-//     }
-//   }
+        friends = friendList.map<Map<String, String>>((friend) {
+        return {
+          "name": friend["name"] as String,
+          "image": friend["image"] as String,
+        };
+      }).toList();
+        // friends = (response as List).map((friend) {
+        //   return {
+        //     "name": friend["name"] as String,
+        //     "image": friend["image"] as String,
+        //   };
+        // }).toList();
+      });
+    } catch (error) {
+      print("친구 목록 불러오기 실패: $error");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
