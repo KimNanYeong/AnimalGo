@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'dart:math';
-import 'package:animalgo/screens/chat/ChatListScreen.dart';
+import '../chat/ChatListScreen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_joystick/flutter_joystick.dart';
 import '../myPage/my_page.dart';
 import '../home/HomeScreen.dart';
 import '../../components/BottomBar.dart';
@@ -15,6 +16,10 @@ class _VillageScreenState extends State<VillageScreen> {
   final Random random = Random();
   final double screenWidth = 360; // 배경 사이즈 (가로)
   final double screenHeight = 600; // 배경 사이즈 (세로)
+
+  double characterX = 0;
+  double characterY = 0;
+  double speed = 5.0;
 
   List<Map<String, dynamic>> characters = [];
   List<bool> isPaused = []; // 캐릭터 멈춤 여부
@@ -46,7 +51,7 @@ class _VillageScreenState extends State<VillageScreen> {
     }
 
     // 일정 시간마다 캐릭터의 위치를 랜덤 변경 + 방향 변경
-    Timer.periodic(Duration(seconds: 5), (timer) {
+    Timer.periodic(Duration(seconds: random.nextInt(6) + 3), (timer) {// 3~8초 랜덤
       setState(() {
         for (int i = 0; i < characters.length; i++) {
           if (!isPaused[i]) { // 멈춰있는 캐릭터는 이동하지 않음
@@ -67,6 +72,12 @@ class _VillageScreenState extends State<VillageScreen> {
       });
     });
   }
+  void _updatePosition(StickDragDetails details) {
+    setState(() {
+      characterX += details.x * speed;
+      characterY += details.y * speed;
+    });
+  }
   /// ✅ 충돌 감지 및 멈춤 처리
   void _checkCollisions() {
     for (int i = 0; i < characters.length; i++) {
@@ -83,7 +94,6 @@ class _VillageScreenState extends State<VillageScreen> {
     double dy = (characters[i]['y']! - characters[j]['y']!).abs();
     return dx < 50 && dy < 50; // 캐릭터 크기(50px) 이내면 충돌
   }
-
   /// ✅ 충돌한 캐릭터를 n초 동안 멈추게 한 후, 말풍선 표시
   void _pauseCharacters(int i, int j) {
     if (!isPaused[i] && !isPaused[j]) {
@@ -91,34 +101,44 @@ class _VillageScreenState extends State<VillageScreen> {
         isPaused[i] = true;
         isPaused[j] = true;
       });
-
       // ✅ 충돌 후 n초 동안 멈추게 함 (6초)
-      Future.delayed(Duration(seconds: 5), () {
+      Future.delayed(Duration(seconds: 6), () {
         setState(() {
           isPaused[i] = false;
           isPaused[j] = false;
-          _showSpeechBubble(i, j);
+          _showSpeechBubbles(i, j);
         });
       });
     }
   }
-  /// ✅ 충돌 시 말풍선 표시 (n초 후 사라짐)
-  void _showSpeechBubble(int i, int j) {
-    String bubbleId = "${i}_${j}_${DateTime.now().millisecondsSinceEpoch}"; // 말풍선 고유 ID 생성
+  /// ✅ 충돌 시 두 캐릭터 모두 말풍선을 띄우도록 수정
+  void _showSpeechBubbles(int i, int j) {
+    String bubbleId1 = "${i}_${DateTime.now().millisecondsSinceEpoch}"; // 캐릭터 1의 말풍선 ID
+    String bubbleId2 = "${j}_${DateTime.now().millisecondsSinceEpoch}"; // 캐릭터 2의 말풍선 ID
+
+    List<String> messages = ["안녕!", "반가워!", "좋은 날이야!", "뭐해?", "같이 놀자!", "재밌겠다!"];
+    String message1 = messages[random.nextInt(messages.length)];
+    String message2 = messages[random.nextInt(messages.length)];
 
     setState(() {
       speechBubbles.add({
-        'id': bubbleId, // 고유 ID 추가
-        'x': (characters[i]['x']! + characters[j]['x']!) / 2, // 두 캐릭터 중앙
-        'y': (characters[i]['y']! + characters[j]['y']!) / 2 - 40, // 캐릭터 위쪽에 표시
-        'message': "안녕!", // 말풍선 메시지
+        'id': bubbleId1,
+        'x': characters[i]['x'], // 첫 번째 캐릭터 위치
+        'y': characters[i]['y'] - 40,
+        'message': message1, // 말풍선 메시지
+      });
+      speechBubbles.add({
+        'id': bubbleId2,
+        'x': characters[j]['x'], // 두 번째 캐릭터 위치
+        'y': characters[j]['y'] - 40,
+        'message': message2, // 말풍선 메시지
       });
     });
 
     // ✅ n초 후 말풍선 삭제
-    Future.delayed(Duration(seconds: 5), () {
+    Future.delayed(Duration(seconds: 3), () {
       setState(() {
-        speechBubbles.removeWhere((bubble) => bubble['id'] == bubbleId);
+        speechBubbles.removeWhere((bubble) => bubble['id'] == bubbleId1 || bubble['id'] == bubbleId2);
       });
     });
   }
@@ -137,11 +157,43 @@ class _VillageScreenState extends State<VillageScreen> {
               fit: BoxFit.cover,
             ),
           ),
+          // ✅ 캐릭터 (파란색 원)
+          Positioned(
+            left: characterX + MediaQuery.of(context).size.width / 2 - 25,
+            top: characterY + MediaQuery.of(context).size.height / 2 - 25,
+            child: Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: Colors.blue,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+
+          // ✅ Joystick 추가 (화면 왼쪽 하단)
+          Align(
+            alignment: Alignment.bottomRight,
+            child: Padding(
+              padding: const EdgeInsets.all(32.0),
+              child: SizedBox(
+                width: 80, // ✅ 조이스틱 크기 조절 (기본값보다 작게)
+                height: 80,
+                child: Joystick(
+                  mode: JoystickMode.all, // 모든 방향 가능 (상하좌우 + 대각선)
+                  listener: (details) {
+                    _updatePosition(details);
+                  },
+                ),
+              ),
+            ),
+          ),
+
 
           // 캐릭터들을 랜덤하게 배치
           for (int i = 0; i < characters.length; i++)
             AnimatedPositioned(
-              duration: Duration(seconds: 5),
+              duration: Duration(seconds: 6),
               left: characters[i]['x']!,
               top: characters[i]['y']!,
               child: Image.asset(
@@ -157,7 +209,6 @@ class _VillageScreenState extends State<VillageScreen> {
               top: bubble['y'],
               child: _buildSpeechBubble(bubble['message']),
             ),
-
         ],
 
       ),
@@ -222,4 +273,41 @@ class _VillageScreenState extends State<VillageScreen> {
       ),
     );
   }
+  ///✅ 말풍선 UI
+  // Widget _Joystick_menual(BuildContext context) {
+  //   return Scaffold(
+  //     backgroundColor: Colors.white,
+  //     body: Stack(
+  //       children: [
+  //         // ✅ 캐릭터 (파란색 원)
+  //         Positioned(
+  //           left: characterX + MediaQuery.of(context).size.width / 2 - 25,
+  //           top: characterY + MediaQuery.of(context).size.height / 2 - 25,
+  //           child: Container(
+  //             width: 50,
+  //             height: 50,
+  //             decoration: BoxDecoration(
+  //               color: Colors.blue,
+  //               shape: BoxShape.circle,
+  //             ),
+  //           ),
+  //         ),
+  //
+  //         // ✅ Joystick 추가 (화면 왼쪽 하단)
+  //         Align(
+  //           alignment: Alignment.bottomLeft,
+  //           child: Padding(
+  //             padding: const EdgeInsets.all(32.0),
+  //             child: Joystick(
+  //               mode: JoystickMode.all, // 모든 방향 가능 (상하좌우 + 대각선)
+  //               listener: (details) {
+  //                 _updatePosition(details);
+  //               },
+  //             ),
+  //           ),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 }
