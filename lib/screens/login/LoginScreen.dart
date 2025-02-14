@@ -4,13 +4,16 @@ import '../regist/RegistScreen.dart';
 import '../../service/ApiService.dart';
 import '../../components/SnackbarHelper.dart';
 import '../home/HomeScreen.dart';
+import 'package:dio/dio.dart';
+import 'package:dio/src/form_data.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class LoginScreen extends StatefulWidget{
+class LoginScreen extends StatefulWidget {
   @override
   _LoginScreenState createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen>{
+class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _idController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
@@ -18,23 +21,21 @@ class _LoginScreenState extends State<LoginScreen>{
   final FocusNode _passwordFocusNode = FocusNode();
 
   @override
-  void initState(){
+  void initState() {
     _idFocusNode.addListener(() {
-      setState(() {
-        _idController.text = '';
-      });
+      // setState(() {
+      //   _idController.text = '';
+      // });
     });
     _passwordFocusNode.addListener(() {
-      setState(() {
-        _passwordController.text = '';
-      });
+      // setState(() {
+      //   _passwordController.text = '';
+      // });
     });
-    
-    
   }
 
   @override
-  void dispose(){
+  void dispose() {
     _idFocusNode.dispose();
     _passwordFocusNode.dispose();
     super.dispose();
@@ -44,7 +45,7 @@ class _LoginScreenState extends State<LoginScreen>{
     final String id = _idController.text;
     final String password = _passwordController.text;
 
-    if (id.isEmpty){
+    if (id.isEmpty) {
       SnackbarHelper.showSnackbar(context, '아이디를 입력해주세요.');
       // ScaffoldMessenger.of(context).showSnackBar(
       //   SnackBar(
@@ -63,7 +64,7 @@ class _LoginScreenState extends State<LoginScreen>{
       return;
     }
 
-    if (password.isEmpty){
+    if (password.isEmpty) {
       SnackbarHelper.showSnackbar(context, "비밀번호를 입력해주세요.");
       // ScaffoldMessenger.of(context).showSnackBar(
       //   SnackBar(
@@ -81,72 +82,78 @@ class _LoginScreenState extends State<LoginScreen>{
       // );
       return;
     }
-
+    Dio _dio = Dio(
+      BaseOptions(
+        baseUrl: "http://122.46.89.124:7000", // ✅ 서버 기본 주소 설정
+        connectTimeout: Duration(seconds: 10), // ✅ 연결 타임아웃 (10초)
+        receiveTimeout: Duration(seconds: 10), // ✅ 응답 타임아웃 (10초)
+        headers: {"Content-Type": "application/json"}, // ✅ 기본 헤더 설정
+      ),
+    );
     try {
-      var response = await ApiService().post(
-        '/login',
-        data: {
-          'id': id,
-          'password': password,
-        },
-      );
+      FormData formdata = FormData.fromMap({
+        'user_id': id,
+        'password': password,
+      });
 
-      if (response['result'] == false){
-        SnackbarHelper.showSnackbar(context, '아이디 또는 비밀번호가 일치하지 않습니다.');
-        // ScaffoldMessenger.of(context).showSnackBar(
-        //   SnackBar(
-        //     duration: Duration(seconds: 1),
-        //     content: Text(
-        //       '아이디 또는 비밀번호가 일치하지 않습니다.',
-        //       style: TextStyle(
-        //         color: Colors.white,
-        //         fontSize: 16,
-        //         ),
-        //         textAlign: TextAlign.center,
-        //       ),
-        //     backgroundColor: Colors.red,
-        //   ),
-        // );
-        return;
+      var response = await _dio.post('/home/login', data: formdata);
+      final prefs = await SharedPreferences.getInstance();
+      String? cookie = prefs.getString('cookie');
+      if (response.statusCode == 200) {
+        if (cookie == null || cookie.isEmpty) {
+          cookie = id;
+          await prefs.setString("cookie", cookie);
+          print("쿠키 저장 완료: $cookie");
+        }
+        Navigator.push(
+            context,
+            // 'HomeScreen' // MaterialPageRoute(builder: (context) => HomeScreen()
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) =>
+                  HomeScreen(),
+            ));
       }
-
-      Navigator.push(
-              context,
-              // 'HomeScreen' // MaterialPageRoute(builder: (context) => HomeScreen()
-              PageRouteBuilder(
-                pageBuilder: (context, animation, secondaryAnimation) => HomeScreen(),
-              //   transitionDuration: Duration(milliseconds: 100), // 0.5초 애니메이션 지속
-              //   transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              //     return FadeTransition(
-              //       opacity: animation, // 애니메이션 효과 적용
-              //       child: child,
-              //     );
-              //   },
-              )
-      );
-    } catch (e){
-      print('로그인 실패: $e');
+    } on DioException catch(e){
+      if (e.response != null) {
+        if (e.response?.data is Map<String, dynamic>) {
+            // 응답이 Map인지 확인
+            final responseData = e.response?.data as Map<String, dynamic>;
+            if (responseData.containsKey('detail')) {
+              String message = responseData['detail'];
+              if(message == '401: Invalid password'){
+                SnackbarHelper.showSnackbar(context,'아이디 또는 비밀번호를 확인해 주세요.');
+              }
+              else if(message == '404: User not found'){
+                SnackbarHelper.showSnackbar(context,'아이디 또는 비밀번호를 확인해 주세요.');
+              }
+            }else{
+              SnackbarHelper.showSnackbar(context,'아이디 또는 비밀번호를 확인해 주세요.');
+            }
+          }
+      }
+    } catch (e1) {
+      SnackbarHelper.showSnackbar(context,'서버에서 오류가 발생했습니다.');
     }
   }
 
   @override
-  Widget build(BuildContext context){
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white, elevation: 0,
-        leading:  IconButton(
-              icon: Icon(Icons.arrow_back, color: Colors.black),
-              onPressed: () {
-                Navigator.pushReplacement( // 이전 화면으로 이동
-                  context,
-                  PageRouteBuilder(
-                    pageBuilder: (context, animation, secondaryAnimation) =>
-                        HomeScreen(),
-                    transitionDuration: Duration.zero,
-                  ),
-                );
-              },
-            )
+        //   leading:  IconButton(
+        //         icon: Icon(Icons.arrow_back, color: Colors.black),
+        //         onPressed: () {
+        //           Navigator.pushReplacement( // 이전 화면으로 이동
+        //             context,
+        //             PageRouteBuilder(
+        //               pageBuilder: (context, animation, secondaryAnimation) =>
+        //                   HomeScreen(),
+        //               transitionDuration: Duration.zero,
+        //             ),
+        //           );
+        //         },
+        //       )
       ),
       backgroundColor: Colors.white,
       body: Padding(
@@ -181,7 +188,7 @@ class _LoginScreenState extends State<LoginScreen>{
               // 패스워드 입력 필드
               TextField(
                 controller: _passwordController,
-                focusNode : _passwordFocusNode,
+                focusNode: _passwordFocusNode,
                 decoration: InputDecoration(
                   border: OutlineInputBorder(),
                   hintText: '패스워드',
@@ -199,7 +206,8 @@ class _LoginScreenState extends State<LoginScreen>{
                   backgroundColor: Colors.black,
                   padding: const EdgeInsets.symmetric(vertical: 15),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4), // 로그인 버튼의 border radius
+                    borderRadius:
+                        BorderRadius.circular(4), // 로그인 버튼의 border radius
                   ),
                 ),
                 child: const Text(
@@ -207,7 +215,7 @@ class _LoginScreenState extends State<LoginScreen>{
                   style: TextStyle(color: Colors.white),
                 ),
               ),
-               const SizedBox(height: 20),
+              const SizedBox(height: 20),
               // 회원가입
               ElevatedButton(
                 onPressed: () {
@@ -220,9 +228,11 @@ class _LoginScreenState extends State<LoginScreen>{
                   backgroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 15),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4), // 로그인 버튼의 border radius
-                    side : BorderSide(color: const Color.fromARGB(255, 190, 190, 190), width: 1.0)
-                  ),
+                      borderRadius:
+                          BorderRadius.circular(4), // 로그인 버튼의 border radius
+                      side: BorderSide(
+                          color: const Color.fromARGB(255, 190, 190, 190),
+                          width: 1.0)),
                 ),
                 child: const Text(
                   '회원가입',
@@ -236,25 +246,19 @@ class _LoginScreenState extends State<LoginScreen>{
               SocialLoginButton(
                 iconPath: 'assets/images/google.webp',
                 label: 'Sign in with Google',
-                onPressed: () {
-
-                },
+                onPressed: () {},
               ),
               const SizedBox(height: 10),
               SocialLoginButton(
                 iconPath: 'assets/images/naver.png',
                 label: 'Sign in with Naver',
-                onPressed: () {
-
-                },
+                onPressed: () {},
               ),
               const SizedBox(height: 10),
               SocialLoginButton(
                 iconPath: 'assets/images/kakao.png',
                 label: 'Sign in with Kakao',
-                onPressed: () {
-
-                },
+                onPressed: () {},
               ),
             ],
           ),
