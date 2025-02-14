@@ -9,6 +9,7 @@ import 'EditProfileScreen.dart';
 import 'SettingsScreen.dart';
 import '../chat/ChatListScreen.dart'; // ✅ 채팅 리스트 화면 추가
 import '../village_test/Village.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MyPage extends StatefulWidget {
   @override
@@ -89,6 +90,29 @@ class _MyPage extends State<MyPage> with WidgetsBindingObserver {
                 );
               },
               child: Text('설정'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white, // 버튼 배경색 (흰색)
+                foregroundColor: Colors.black, // 버튼 글씨 색상 (검은색)
+                padding: EdgeInsets.symmetric(vertical: 16), // 버튼 내부 패딩
+                textStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.bold), // 텍스트 스타일
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8), // 모서리 둥글게
+                  side: BorderSide(color: Colors.black, width: 1.5), // 검은색 테두리
+                ),
+                minimumSize: Size(double.infinity, 50), // 버튼을 너비 최대로 설정
+              ),
+            ),
+            SizedBox(height: 25),
+            ElevatedButton(
+              onPressed: () async {
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.remove("cookie");
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => HomeScreen()),
+                );
+              },
+              child: Text('로그아웃'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white, // 버튼 배경색 (흰색)
                 foregroundColor: Colors.black, // 버튼 글씨 색상 (검은색)
