@@ -107,7 +107,7 @@ class _MyPage extends State<MyPage> with WidgetsBindingObserver {
               onPressed: () async {
                 final prefs = await SharedPreferences.getInstance();
                 await prefs.remove("cookie");
-                Navigator.push(
+                Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => HomeScreen()),
                 );

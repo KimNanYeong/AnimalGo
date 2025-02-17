@@ -4,11 +4,13 @@ import '../character/CharacterScreen.dart';
 class FriendInfoPopup extends StatelessWidget {
   final String friendName;
   final String friendImage;
+  final String friendId;
 
   const FriendInfoPopup({
     Key? key,
     required this.friendName,
     required this.friendImage,
+    required this.friendId,
   }) : super(key: key);
 
   @override
@@ -37,8 +39,8 @@ class FriendInfoPopup extends StatelessWidget {
                   children: [
                     // 이미지가 동그랗게 보이도록 처리
                     ClipOval(
-                      child: Image.asset(
-                        friendImage,
+                      child: Image.network(
+                        "http://122.46.89.124:7000/image/show_image?character_id=${friendId}",
                         width: screenWidth * 0.5, // 화면 너비의 40%로 크기 설정
                         height: screenWidth * 0.5, // 화면 너비의 40%로 크기 설정
                         fit: BoxFit.cover,
