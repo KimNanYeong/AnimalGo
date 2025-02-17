@@ -2,15 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:animalgo/screens/home/HomeScreen.dart';
 import 'package:animalgo/screens/myPage/my_page.dart';
 import 'package:animalgo/components/BottomBar.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class CharacterScreen extends StatefulWidget{
-  const CharacterScreen({Key? key}) : super(key: key);
+  final String character_id;
+  // const CharacterScreen({Key? key}) : super(key: key);
+  const CharacterScreen({
+    Key? key,
+    required this.character_id,
+    // required this.imageUrl
+  }) : super(key: key);
 
   @override
   _CharacterscreenState createState() => _CharacterscreenState();
 }
 
 class _CharacterscreenState extends State<CharacterScreen>{
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -20,9 +28,12 @@ class _CharacterscreenState extends State<CharacterScreen>{
         // title: const Text("상세보기"),
         actions: [
           IconButton(
-            icon: const CircleAvatar(
+            icon: CircleAvatar(
               radius: 30,
-              backgroundImage: AssetImage("assets/images/dog1.png"), // 프로필 이미지
+              // backgroundImage: AssetImage("assets/images/dog1.png"), // 프로필 이미지
+              backgroundImage: NetworkImage(
+                '${dotenv.env['SERVER_URL']}/image/show_image?character_id=${widget.character_id}&type=original',
+              ),
             ),
             onPressed: () {
               showDialog(
@@ -35,8 +46,10 @@ class _CharacterscreenState extends State<CharacterScreen>{
                       child: Container(
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(10),
-                          image: const DecorationImage(
-                            image: AssetImage("assets/images/dog1.png"),
+                          image: DecorationImage(
+                            image: NetworkImage(
+                              '${dotenv.env['SERVER_URL']}/image/show_image?character_id=${widget.character_id}&type=original}'
+                            ),
                             fit: BoxFit.contain, // 원본 비율 유지
                           ),
                         ),
@@ -59,9 +72,11 @@ class _CharacterscreenState extends State<CharacterScreen>{
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const CircleAvatar(
+                CircleAvatar(
                   radius: 60,
-                  backgroundImage: AssetImage("assets/images/dog2.png"), // 강아지 이미지
+                   backgroundImage: NetworkImage(
+                    '${dotenv.env['SERVER_URL']}/image/show_image?character_id=${widget.character_id}&type=original',
+                  ),
                   
                 ),
                 const SizedBox(width: 20),

@@ -1,16 +1,17 @@
+import 'package:animalgo/screens/chat/ChatRoomScreen.dart';
 import 'package:flutter/material.dart';
 import '../character/CharacterScreen.dart';
 
 class FriendInfoPopup extends StatelessWidget {
-  final String friendName;
-  final String friendImage;
-  final String friendId;
+  final String nickname;
+  // final String friendImage;
+  final String character_id;
 
   const FriendInfoPopup({
     Key? key,
-    required this.friendName,
-    required this.friendImage,
-    required this.friendId,
+    required this.nickname,
+    // required this.friendImage,
+    required this.character_id,
   }) : super(key: key);
 
   @override
@@ -40,7 +41,7 @@ class FriendInfoPopup extends StatelessWidget {
                     // 이미지가 동그랗게 보이도록 처리
                     ClipOval(
                       child: Image.network(
-                        "http://122.46.89.124:7000/image/show_image?character_id=${friendId}",
+                        "http://122.46.89.124:7000/image/show_image?character_id=${character_id}",
                         width: screenWidth * 0.5, // 화면 너비의 40%로 크기 설정
                         height: screenWidth * 0.5, // 화면 너비의 40%로 크기 설정
                         fit: BoxFit.cover,
@@ -49,7 +50,7 @@ class FriendInfoPopup extends StatelessWidget {
                     SizedBox(height: 20),
                     // 닉네임
                     Text(
-                      friendName,
+                      nickname,
                       style: TextStyle(
                         fontSize: screenWidth * 0.07, // 화면 너비의 7%로 글자 크기 설정
                         fontWeight: FontWeight.bold,
@@ -63,6 +64,7 @@ class FriendInfoPopup extends StatelessWidget {
                         ElevatedButton(
                           onPressed: () {
                             // 채팅하기 버튼 동작 추가
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => ChatRoomScreen(chatId:character_id, friendName: nickname)));
                             print('채팅하기 버튼 눌림');
                           },
                           style: ElevatedButton.styleFrom(
@@ -82,7 +84,7 @@ class FriendInfoPopup extends StatelessWidget {
                         ElevatedButton(
                           onPressed: () {
                             // 상세보기 버튼 동작 추가
-                            Navigator.push(context, MaterialPageRoute(builder: (context) => CharacterScreen()));
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => CharacterScreen(character_id : character_id)));
                             print('상세보기 버튼 눌림');
                           },
                           style: ElevatedButton.styleFrom(
