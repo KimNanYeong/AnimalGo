@@ -12,7 +12,7 @@ class NetworkProvider with ChangeNotifier {
   DateTime? _lastCheckTime;
   final Duration _checkInterval = Duration(minutes: 1);
   final Duration _minimumCheckInterval = Duration(seconds: 10);
-  final String _serverUrl = 'http://122.46.89.124:8000';
+  final String _serverUrl = 'http://192.168.10.77:8000';
   
   NetworkProvider() {
     _initialize();

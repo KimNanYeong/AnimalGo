@@ -1,10 +1,12 @@
-import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:path/path.dart' as path;
 import 'package:provider/provider.dart';
 import 'setting/settings_provider.dart';
+
 
 class CameraSelect extends StatefulWidget {
   final String segmentedImagePath; // ✅ 세그멘테이션 이미지 경로
@@ -92,19 +94,19 @@ class _CameraSelectState extends State<CameraSelect> {
     }
 
     try {
-      final String serverUrl = "http://<서버_IP>:8000/save_user";
+      final String serverUrl = "http://122.46.89.124:7000/home/upload-original-image";//
 
       var request = http.MultipartRequest('POST', Uri.parse(serverUrl));
 
       // ✅ 텍스트 데이터 추가
-      request.fields['nickname'] = nickname;
+      request.fields['user_id'] = "1";
       request.fields['personality'] = selectedPersonality!;
       request.fields['appearance'] = selectedAppearance!;
-      request.fields['animal_species'] = selectedAnimal!; // 🆕 동물의 종 추가
+      request.fields['animaltype'] = selectedAnimal!; // 🆕 동물의 종 추가
 
       // ✅ 이미지 파일 추가
-      request.files.add(await http.MultipartFile.fromPath('original_image', widget.originalImagePath));
-      request.files.add(await http.MultipartFile.fromPath('segmented_image', widget.segmentedImagePath));
+      request.files.add(await http.MultipartFile.fromPath('file', widget.originalImagePath));
+      // request.files.add(await http.MultipartFile.fromPath('segmented_image', widget.segmentedImagePath));
 
       var response = await request.send();
 
@@ -123,6 +125,59 @@ class _CameraSelectState extends State<CameraSelect> {
       );
     }
   }
+
+  ///firestore에 데이터 보내기
+  // Future<void> _saveDataToFirestore() async {
+  //   final nickname = nicknameController.text.trim();
+  //   if (nickname.isEmpty || selectedPersonality == null || selectedAppearance == null || selectedAnimal == null) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(content: Text('닉네임, 성격, 외모, 동물의 종을 모두 선택하세요.'))
+  //     );
+  //     return;
+  //   }
+  //
+  //   try {
+  //     // Firestore 인스턴스
+  //     final FirebaseFirestore firestore = FirebaseFirestore.instance;
+  //     final FirebaseStorage storage = FirebaseStorage.instance;
+  //
+  //     // ✅ 이미지 업로드 (Firebase Storage)
+  //     String originalImageName = 'original_${DateTime.now().millisecondsSinceEpoch}.jpg';
+  //     String segmentedImageName = 'segmented_${DateTime.now().millisecondsSinceEpoch}.png';
+  //
+  //     // Storage에 업로드
+  //     UploadTask originalUploadTask = storage.ref('images/$originalImageName').putFile(File(widget.originalImagePath));
+  //     UploadTask segmentedUploadTask = storage.ref('images/$segmentedImageName').putFile(File(widget.segmentedImagePath));
+  //
+  //     // 업로드 완료 후 URL 가져오기
+  //     TaskSnapshot originalSnapshot = await originalUploadTask;
+  //     TaskSnapshot segmentedSnapshot = await segmentedUploadTask;
+  //
+  //     String originalImageUrl = await originalSnapshot.ref.getDownloadURL();
+  //     String segmentedImageUrl = await segmentedSnapshot.ref.getDownloadURL();
+  //
+  //     // ✅ Firestore에 데이터 저장
+  //     await firestore.collection('users').add({
+  //       'nickname': nickname,
+  //       'personality': selectedPersonality!,
+  //       'appearance': selectedAppearance!,
+  //       'animal_species': selectedAnimal!,
+  //       'original_image': originalImageUrl,
+  //       'segmented_image': segmentedImageUrl,
+  //       'timestamp': FieldValue.serverTimestamp(),
+  //     });
+  //
+  //     print('Firestore에 데이터 저장 완료');
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(content: Text('데이터 저장 완료!'))
+  //     );
+  //   } catch (e) {
+  //     print('Firestore 저장 실패: $e');
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(content: Text('저장 실패: $e'), backgroundColor: Colors.red)
+  //     );
+  //   }
+  // }
 
 
   Widget _buildImageCard(String title, String imagePath) {

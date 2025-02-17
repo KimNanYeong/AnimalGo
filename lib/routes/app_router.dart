@@ -1,3 +1,4 @@
+import 'package:animalgo/screens/login/LoginScreen.dart';
 import 'package:flutter/material.dart';
 import '../screens/home/HomeScreen.dart';
 import '../screens/chat/ChatListScreen.dart'; // ✅ 추가
@@ -12,6 +13,7 @@ class AppRouter {
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     final Map<String, dynamic>? args = settings.arguments as Map<String, dynamic>?; // ✅ Null Safety 적용
+    print(settings.name);
     switch (settings.name) {
       case home:
         return MaterialPageRoute(builder: (_) => HomeScreen());

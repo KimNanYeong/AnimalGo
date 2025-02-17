@@ -12,6 +12,7 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:path/path.dart' as path;
 import 'setting/network_provider.dart';
 import 'CaptureRetryScreen.dart';
+import 'setting/get_metadata.dart';
 import 'setting/settings_provider.dart';
 // import 'setting/animal_characteristics_provider.dart';
 
@@ -224,7 +225,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => CameraSelect(
+              builder: (context) => MetadataDropdownScreen(
                 segmentedImagePath: segmentedTempPath,
                 originalImagePath: originalTempFile.path,
               ),
@@ -310,7 +311,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
                   _initializeCamera(); // 카메라 다시 초기화
                 });
               },
-              child: Text('다시 찍어주세요'),
+              child: Text('다시 시도하기'),
             ),
           ],
         ),

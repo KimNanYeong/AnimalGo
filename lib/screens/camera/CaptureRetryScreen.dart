@@ -5,7 +5,10 @@ class CaptureRetryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('촬영 실패')),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+          backgroundColor: Colors.white,
+          title: Text('촬영 실패')),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

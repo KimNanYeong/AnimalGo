@@ -7,8 +7,6 @@ import '../village/VillageScreen.dart';
 import 'ChatRoomScreen.dart';
 import '../myPage/my_page.dart';
 import 'package:intl/intl.dart'; // ✅ 날짜 변환을 위해 추가
-
-
 class ChatListScreen extends StatefulWidget {
   const ChatListScreen({Key? key}) : super(key: key);
 
