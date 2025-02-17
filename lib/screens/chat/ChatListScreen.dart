@@ -78,63 +78,45 @@ class _ChatListScreenState extends State<ChatListScreen> {
         headers: {"Accept-Charset": "utf-8"},
       );
 
-      print("🔍 서버 원본 응답: ${response.body}");
-
       if (response.statusCode == 200) {
-        try {
-          final String utf8String = utf8.decode(response.bodyBytes);
-          final Map<String, dynamic> responseData = json.decode(utf8String);
-          //print("🔍 JSON 변환 성공: $responseData");
+        final String utf8String = utf8.decode(response.bodyBytes);
+        final Map<String, dynamic> responseData = json.decode(utf8String);
+        final List<dynamic>? chatList = responseData["chats"];
 
-          final List<dynamic>? chatList = responseData["chats"];
-
-          if (chatList == null || chatList.isEmpty) {
-            print("⚠️ 서버에서 받은 채팅 목록이 비어 있음!");
-            setState(() {
-              chatRooms = [];
-            });
-            return;
-          }
-
+        if (chatList == null || chatList.isEmpty) {
+          print("⚠️ 서버에서 받은 채팅 목록이 비어 있음!");
           setState(() {
-            chatRooms = chatList
-                .where((chat) => chat["chat_id"] != null)
-                .map((chat) {
-              final lastMessage = chat["last_message"] ?? {};
-              return {
-                "chat_id": chat["chat_id"]?.toString() ?? "unknown_id",
-                "nickname": chat["nickname"]?.toString() ?? "알 수 없는 사용자",
-                "personality": chat["personality"]?.toString() ?? "unknown",
-                "create_at": formatDate(chat["create_at"]),
-                "last_active_at": formatDate(chat["last_active_at"]),
-                "last_message": {
-                  "content": lastMessage["content"]?.toString() ??
-                      "메시지가 없습니다.",
-                  "sender": lastMessage["sender"]?.toString() ?? "unknown",
-                  "timestamp": formatDate(lastMessage["timestamp"])
-                }
-              };
-            }).toList();
-
-            //print("✅ 변환된 chatRooms 데이터: $chatRooms");
+            chatRooms = [];
           });
-        } catch (jsonError) {
-          print("⚠️ JSON 변환 오류: $jsonError");
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("서버 응답을 처리할 수 없습니다.")),
-          );
+          return;
         }
+
+        setState(() { // ✅ setState로 강제 갱신
+          chatRooms = chatList
+              .where((chat) => chat["chat_id"] != null)
+              .map((chat) {
+            final lastMessage = chat["last_message"] ?? {};
+            return {
+              "chat_id": chat["chat_id"]?.toString() ?? "unknown_id",
+              "nickname": chat["nickname"]?.toString() ?? "알 수 없는 사용자",
+              "personality": chat["personality"]?.toString() ?? "unknown",
+              "create_at": formatDate(chat["create_at"]),
+              "last_active_at": formatDate(chat["last_active_at"]),
+              "last_message": {
+                "content": lastMessage["content"]?.toString() ?? "메시지가 없습니다.",
+                "sender": lastMessage["sender"]?.toString() ?? "unknown",
+                "timestamp": formatDate(lastMessage["timestamp"])
+              }
+            };
+          }).toList();
+        });
+
+        print("✅ 최신 채팅 목록으로 갱신됨!");
       } else {
         print('❌ 서버 응답 오류: ${response.statusCode}');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("서버 오류: ${response.statusCode}")),
-        );
       }
     } catch (e) {
       print('⚠️ 네트워크 오류 발생: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("서버에 연결할 수 없습니다. 네트워크를 확인하세요.")),
-      );
     }
   }
 
@@ -244,8 +226,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
                 chatRooms[index]["last_active_at"] ?? "unknown",
                 style: TextStyle(color: Colors.grey),
               ),
-              onTap: () {
-                Navigator.push(
+              onTap: () async {
+                await Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => ChatRoomScreen(
@@ -254,7 +236,11 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     ),
                   ),
                 );
-                fetchChatList(); // ✅ 채팅방에서 나올 때 최신 메시지 다시 불러오기
+                fetchChatList(); // ✅ 1차 갱신 (즉시 실행)
+
+                Future.delayed(Duration(seconds: 1), () {
+                  fetchChatList(); // ✅ 1초 후 다시 실행 (최신 데이터 반영)
+                });
               },
             ),
           );

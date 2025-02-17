@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'screens/camera/CameraScreen.dart';
 // import 'package:open_cv/screens/camera/setting/animal_characteristics_provider.dart';
 import 'screens/camera/setting/network_provider.dart';
@@ -17,6 +18,8 @@ void main() async {
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,  // 세로 모드로 고정
   ]);
+  // ✅ 디버그 페인트 비활성화 (디버그 UI 가이드 제거)
+  debugPaintSizeEnabled = false;
   WidgetsFlutterBinding.ensureInitialized(); // ✅ Flutter 엔진과 위젯 바인딩
   await initializeDateFormatting('ko_KR', null); // ✅ 한국어 날짜 데이터 초기화
   runApp(
@@ -35,6 +38,7 @@ class MyApp extends StatelessWidget{
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false, // ✅ 디버그 배너 제거
       title: 'Flutter Navigation',
       initialRoute: AppRouter.home,
       onGenerateRoute: AppRouter.generateRoute,

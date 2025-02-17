@@ -24,6 +24,18 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   List<Map<String, dynamic>> messages = []; // 채팅 내역 리스트
+  Timer? _timer;
+
+  /// ✅ 자동 스크롤 함수 (마지막 메시지 위치로 이동)
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+  }
 
   /// 날짜/시간 포맷 변환 함수 (12시간/24시간 모두 지원)
   String formatTimestamp(String? timestamp) {
@@ -81,14 +93,15 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     try {
       final response = await http.get(
         Uri.parse(
-            'http://122.46.89.124:7000/chat/chat/history/${widget.chatId}?user_id=$userId'),
+            'http://122.46.89.124:7000/chat/chat/history/${widget
+                .chatId}?user_id=$userId'),
       );
 
       if (response.statusCode == 200) {
         final String utf8String = utf8.decode(response.bodyBytes);
         final dynamic jsonData = json.decode(utf8String);
 
-        print("📥 서버 응답 데이터: $jsonData");
+        //print("📥 서버 응답 데이터: $jsonData");
 
         if (jsonData is Map<String, dynamic> &&
             jsonData.containsKey("messages")) {
@@ -96,9 +109,11 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
           // 🔹 채팅방 ID에서 상대방 캐릭터 ID 추출 (예: user1_dog001 → dog001)
           List<String> chatParts = widget.chatId.split("_");
-          String characId = chatParts.length > 1 ? chatParts.sublist(1).join("_") : "";
+          String characId = chatParts.length > 1 ? chatParts.sublist(1).join(
+              "_") : "";
 
-          List<Map<String, dynamic>> newMessages = messagesList.map<Map<String, dynamic>>((message) {
+          List<Map<String, dynamic>> newMessages = messagesList.map<
+              Map<String, dynamic>>((message) {
             String rawTimestamp = message["timestamp"]?.toString() ?? "unknown";
             String formattedTime = formatTimestamp(rawTimestamp);
 
@@ -112,18 +127,26 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             };
           }).toList();
 
-          setState(() {
-            messages.clear();
-            messages.addAll(newMessages);
+          messages.sort((a, b) {
+            DateTime timeA = DateFormat("a h:mm", "ko_KR").parse(a["time"]);
+            DateTime timeB = DateFormat("a h:mm", "ko_KR").parse(b["time"]);
+            return timeA.compareTo(timeB); // 시간순 정렬
           });
 
-          print("✅ 최신 메시지 반영 완료: $messages");
+          if (mounted) { // ✅ 위젯이 활성화된 경우에만 setState 실행
+            setState(() {
+              messages.clear();
+              messages.addAll(newMessages);
+            });
+            Future.delayed(
+                Duration(milliseconds: 100), () => _scrollToBottom());
+          }
         }
-      } else {
-        print('❌ 채팅 내역 불러오기 실패: ${response.statusCode}');
       }
     } catch (e) {
-      print("⚠️ JSON 파싱 오류: $e");
+      if (mounted) {
+        print("⚠️ JSON 파싱 오류: $e");
+      }
     }
   }
 
@@ -141,36 +164,33 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     DateTime now = DateTime.now();
     String messageTime = DateFormat("yyyy-MM-dd HH:mm:ss").format(now);
 
-    // 🔹 채팅방 ID에서 상대방 캐릭터 ID 추출 (예: user1_dog001 → dog001)
     List<String> chatParts = widget.chatId.split("_");
-    String characId = chatParts.length > 1 ? chatParts.sublist(1).join("_") : "";
+    String characId = chatParts.length > 1
+        ? chatParts.sublist(1).join("_")
+        : "";
 
+    // ✅ 1. Optimistic UI 적용 (사용자가 보낸 메시지를 즉시 화면에 추가)
     Map<String, dynamic> tempMessage = {
       "message": messageText,
       "isSentByMe": true,
       "time": formatTimestamp(messageTime),
-      "isPending": true,
+      "isPending": true, // 서버 응답을 기다리는 상태
     };
 
     setState(() {
       messages.add(tempMessage);
+      _scrollToBottom();
     });
 
+    // ✅ 2. 입력창 초기화
     _messageController.clear();
 
-    Future.delayed(Duration(milliseconds: 100), () {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
-    });
-
+    // ✅ 3. 서버에 메시지 전송
     Uri url = Uri.parse(
       'http://122.46.89.124:7000/chat/send_message'
           '?user_input=${Uri.encodeComponent(messageText)}'
           '&user_id=$userId'
-          '&charac_id=$characId', // ✅ 올바른 캐릭터 ID 사용
+          '&charac_id=$characId',
     );
 
     try {
@@ -181,8 +201,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
       if (response.statusCode == 200) {
         print("✅ 메시지 전송 성공");
-        Future.delayed(Duration(seconds: 1), () => fetchChatHistory());
-        Future.delayed(Duration(seconds: 3), () => fetchChatHistory());
+
+        // ✅ 4. 서버 응답 후 `isPending` 제거 & 최신 메시지 동기화
+        fetchChatHistory();
       } else {
         print('❌ 메시지 전송 실패: ${response.statusCode} | 응답: ${response.body}');
       }
@@ -192,6 +213,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   }
 
   String friendNickname = ""; // 상대방 닉네임 저장 변수
+  String friendProfileUrl = ""; // 상대방 프로필 사진 URL 저장 변수
 
   Future<void> fetchChatRoomInfo() async {
     try {
@@ -208,6 +230,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             if (chat["chat_id"] == widget.chatId) {
               setState(() {
                 friendNickname = chat["nickname"]; // 상대방 캐릭터 닉네임 저장
+                friendProfileUrl = chat["profile_url"] ?? ""; // 프로필 사진 URL 저장
               });
               break;
             }
@@ -219,22 +242,29 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     }
   }
 
-  Timer? _timer;
-
   @override
   void initState() {
     super.initState();
     initializeDateFormatting('ko_KR', null);
     fetchChatHistory(); // 채팅 내역 불러오기
     // 10초마다 채팅 내역 갱신
-    _timer = Timer.periodic(Duration(seconds: 10), (timer) {
-      fetchChatHistory();
+    // ✅ 10초마다 채팅 내역 갱신 (타이머 설정)
+    _timer = Timer.periodic(Duration(seconds: 5), (timer) {
+      if (mounted) { // ✅ 위젯이 살아있는지 확인 후 실행
+        fetchChatHistory().then((_) {
+          Future.delayed(Duration(milliseconds: 100), () {
+            _scrollToBottom();
+          });
+        }); // ✅ 5초마다 자동 스크롤
+      } else {
+        timer.cancel(); // ✅ 위젯이 제거되었으면 타이머 해제
+      }
     });
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _timer?.cancel(); // ✅ 타이머 정리
     _scrollController.dispose();
     _messageController.dispose();
     super.dispose();
@@ -244,18 +274,20 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        FocusScope.of(context).unfocus(); // 키보드 내리기
+        FocusScope.of(context).unfocus(); // ✅ 화면 터치하면 키보드 닫기
       },
       child: Scaffold(
+        resizeToAvoidBottomInset: true, // ✅ 키보드가 올라올 때 자동으로 스크롤 조정
         backgroundColor: Colors.white,
         appBar: AppBar(
-          title: Text(friendNickname.isNotEmpty ? friendNickname : widget.friendName),
+          title: Text(
+              friendNickname.isNotEmpty ? friendNickname : widget.friendName),
           backgroundColor: Colors.white,
           foregroundColor: Colors.black,
         ),
         body: Column(
           children: [
-            // 채팅 메시지 리스트
+            // ✅ 채팅 메시지 리스트 (자동 스크롤)
             Expanded(
               child: ListView.builder(
                 controller: _scrollController,
@@ -264,105 +296,110 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   bool isSentByMe = messages[index]["isSentByMe"] == true;
 
                   return Padding(
-                    padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    child: Align(
-                      alignment: isSentByMe
-                          ? Alignment.centerRight
-                          : Alignment.centerLeft,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          if (isSentByMe)
-                            Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: Text(
-                                messages[index]["time"]!,
-                                style: const TextStyle(
-                                    color: Colors.black54, fontSize: 10),
-                              ),
-                            ),
-                          if (!isSentByMe)
-                            Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: CircleAvatar(
-                                radius: 16,
-                                backgroundColor: Colors.grey[300],
-                                child: Icon(Icons.person, color: Colors.black),
-                              ),
-                            ),
-                          Flexible(
-                            child: Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: isSentByMe
-                                    ? Colors.blueAccent
-                                    : Colors.grey[300],
-                                borderRadius: BorderRadius.only(
-                                  topLeft: Radius.circular(8),
-                                  topRight: Radius.circular(8),
-                                  bottomLeft: isSentByMe
-                                      ? Radius.circular(8)
-                                      : Radius.zero,
-                                  bottomRight: isSentByMe
-                                      ? Radius.zero
-                                      : Radius.circular(8),
-                                ),
-                              ),
-                              child: Text(
-                                messages[index]["message"]!,
-                                style: TextStyle(
-                                    color: isSentByMe
-                                        ? Colors.white
-                                        : Colors.black),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 5),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: isSentByMe
+                          ? MainAxisAlignment.end
+                          : MainAxisAlignment.start,
+                      children: [
+                        // ✅ 상대방 메시지일 경우 프로필 사진 표시
+                        if (!isSentByMe)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: CircleAvatar(
+                              radius: 20, // 프로필 사진 크기
+                              backgroundImage: NetworkImage(
+                                friendProfileUrl.isNotEmpty
+                                    ? friendProfileUrl // 서버에서 가져온 프로필 사진 URL
+                                    : 'https://via.placeholder.com/150', // 기본 이미지
                               ),
                             ),
                           ),
-                          if (!isSentByMe)
-                            Padding(
-                              padding: const EdgeInsets.only(left: 8),
-                              child: Text(
+
+                        // ✅ 말풍선과 시간 표시
+                        Flexible(
+                          child: Column(
+                            crossAxisAlignment:
+                            isSentByMe
+                                ? CrossAxisAlignment.end
+                                : CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: isSentByMe ? Colors.blueAccent : Colors
+                                      .grey[300],
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  messages[index]["message"]!,
+                                  style: TextStyle(
+                                    color: isSentByMe ? Colors.white : Colors
+                                        .black,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
                                 messages[index]["time"]!,
                                 style: const TextStyle(
                                     color: Colors.black54, fontSize: 10),
                               ),
-                            ),
-                        ],
-                      ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   );
                 },
               ),
             ),
 
-            // 메시지 입력창
-            Container(
-              padding:
-              const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border(
-                  top: BorderSide(color: Colors.grey.shade300),
+            // ✅ 입력창 - 키보드가 올라와도 가려지지 않도록 SafeArea 적용
+            SafeArea(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border(top: BorderSide(color: Colors.grey.shade300)),
                 ),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _messageController,
-                      decoration: InputDecoration(
-                        hintText: "메시지를 입력하세요...",
-                        border: InputBorder.none,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _messageController,
+                        minLines: 1,
+                        maxLines: 5,
+                        keyboardType: TextInputType.multiline,
+                        textInputAction: TextInputAction.newline,
+                        onTap: () {
+                          Future.delayed(Duration(milliseconds: 200), () {
+                            _scrollToBottom(); // ✅ 입력창을 누르면 자동 스크롤
+                          });
+                        },
+                        decoration: InputDecoration(
+                          hintText: "메시지를 입력하세요...",
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            borderSide: BorderSide.none,
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey[200],
+                          contentPadding: EdgeInsets.symmetric(vertical: 8,
+                              horizontal: 12),
+                        ),
                       ),
-                      onSubmitted: (value) => sendMessage(),
                     ),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.send, color: Colors.blueAccent),
-                    onPressed: sendMessage,
-                  ),
-                ],
+                    SizedBox(width: 8),
+                    IconButton(
+                      icon: Icon(Icons.send, color: Colors.blueAccent),
+                      onPressed: sendMessage,
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
