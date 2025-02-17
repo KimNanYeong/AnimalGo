@@ -187,16 +187,32 @@ class _MyPage extends State<MyPage> with WidgetsBindingObserver {
                 ),
               );
               break;
-            case 2: // ✅ 채팅 리스트 화면으로 이동
+            case 2:
               Navigator.pushReplacement(
                 context,
                 PageRouteBuilder(
                   pageBuilder: (context, animation, secondaryAnimation) =>
-                      ChatListScreen(), // ✅ userId 전달 제거
+                      ChatListScreen(),
                   transitionDuration: Duration.zero,
                 ),
               );
               break;
+            case 3:
+              Navigator.pushReplacement(
+                context,
+                PageRouteBuilder(
+                  pageBuilder: (context, animation, secondaryAnimation) =>
+                      MyPage(),
+                  transitionDuration: Duration.zero,
+                ),
+              );
+              break;
+          }
+        },
+      ),
+    );
+  }
+}
 
 
 

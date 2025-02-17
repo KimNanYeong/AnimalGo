@@ -32,22 +32,19 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // Navigater.pushReplacement(context,)
-
   List<Map<String, dynamic>> friends = []; // ✅ 상태로 관리할 친구 목록
 
   @override
   void initState() {
     super.initState();
     _checkSession();
-    // _fetchFriends(); // 친구 목록 불러오기
   }
 
-Future<void> _checkSession() async {
+  Future<void> _checkSession() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('cookie'); // ✅ 쿠키 값 가져오기
 
-    if (token == null || token.isEmpty) { 
+    if (token == null || token.isEmpty) {
       // ✅ 토큰이 없으면 로그인 화면으로 이동
       Navigator.pushReplacement(
         context,
@@ -61,10 +58,10 @@ Future<void> _checkSession() async {
 
   void _fetchFriends(String token) async {
     FormData formData = FormData.fromMap({
-      'user_id' : token??"1"
+      'user_id': token ?? "1"
     });
 
-    try{
+    try {
       Dio _dio = Dio(
         BaseOptions(
           baseUrl: "http://122.46.89.124:7000", // ✅ 서버 기본 주소 설정
@@ -74,16 +71,16 @@ Future<void> _checkSession() async {
         ),
       );
 
-      var response = await _dio.post('/home/characters',data:formData);
-      if(response.statusCode==200){
+      var response = await _dio.post('/home/characters', data: formData);
+      if (response.statusCode == 200) {
         setState(() {
-          Map<String,dynamic> responseMap = response.data as Map<String,dynamic>;
+          Map<String, dynamic> responseMap = response.data as Map<String, dynamic>;
           List<dynamic> friendList = responseMap['characters'] ?? [];
           friends = friendList.map((friend) {
             return {
               "name": friend["nickname"],
               "image": friend["character_path"],
-              "character_id" : friend["character_id"]
+              "character_id": friend["character_id"]
             };
           }).toList();
           // friends = friendList.map<Map<String,String>((friend){
@@ -95,12 +92,13 @@ Future<void> _checkSession() async {
           // });
         });
       }
-    } on DioException catch(e){
-
-    } catch(e1){
+    } on DioException catch (e) {
+      print("❌ Dio 오류 발생: $e");
+    } catch (e1) {
       print(e1);
       SnackbarHelper.showSnackbar(context, "서버에 오류가 발생했습니다.");
     }
+  }
     // try {
       
     //   FormData formData = FormData.fromMap({
@@ -139,6 +137,7 @@ Future<void> _checkSession() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     return prefs.getString('userId'); // ✅ 저장된 userId 가져오기
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -208,3 +207,4 @@ Future<void> _checkSession() async {
     );
   }
 }
+
