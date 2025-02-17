@@ -8,6 +8,8 @@ import '../login/LoginScreen.dart';
 import '../myPage/my_page.dart';
 import '../chat/ChatListScreen.dart'; // ✅ 채팅 리스트 화면 추가
 import 'package:animalgo/screens/village/VillageScreen.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // ✅ SharedPreferences 사용 예시
+
 
 class HomeScreen extends StatelessWidget {
   final List<Map<String, String>> friends = [
@@ -68,6 +70,11 @@ class HomeScreen extends StatelessWidget {
 //     }
 //   }
 
+  Future<String?> getUserId() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString('userId'); // ✅ 저장된 userId 가져오기
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -111,12 +118,12 @@ class HomeScreen extends StatelessWidget {
                 ),
               );
               break;
-            case 2: // ✅ 채팅 리스트 화면으로 이동하도록 수정
+            case 2: // ✅ 채팅 리스트 화면으로 이동
               Navigator.pushReplacement(
                 context,
                 PageRouteBuilder(
                   pageBuilder: (context, animation, secondaryAnimation) =>
-                      ChatListScreen(), // ✅ 채팅 리스트 화면으로 변경
+                      ChatListScreen(), // ✅ userId 전달 제거
                   transitionDuration: Duration.zero,
                 ),
               );

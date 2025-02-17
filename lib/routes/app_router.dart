@@ -23,15 +23,15 @@ class AppRouter {
       //     builder: (_) => ProfileScreen(userId: args ?? 'No ID'),
       //   );
       case chatList:
-        return MaterialPageRoute(builder: (_) => const ChatListScreen());
+        return MaterialPageRoute(
+          builder: (_) => ChatListScreen(), // ✅ userId 전달
+        );
+
       case '/chatRoom':
         return MaterialPageRoute(
           builder: (_) => ChatRoomScreen(
+            chatId: args != null && args.containsKey('chatId') ? args['chatId']! : "default_chat_id", // ✅ chatId 추가
             friendName: args != null && args.containsKey('friendName') ? args['friendName']! : "알 수 없음", // ✅ Null 체크 후 사용
-            initialMessages: args != null && args.containsKey('initialMessages') ? args['initialMessages']! : [],
-            onMessageSent: (newMessage, newTime) {
-              // ✅ 채팅 리스트 업데이트 로직 추가 가능
-            },
           ),
         );
       default:

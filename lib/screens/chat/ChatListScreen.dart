@@ -1,37 +1,159 @@
-import 'package:animalgo/screens/village/VillageScreen.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'ChatRoomScreen.dart';
-import '../camera/CameraScreen.dart';
+import 'package:http/http.dart' as http;
 import '../../components/BottomBar.dart';
-import '../myPage/my_page.dart';
 import '../home/HomeScreen.dart';
+import '../village/VillageScreen.dart';
+import 'ChatRoomScreen.dart';
+import '../myPage/my_page.dart';
+import 'package:intl/intl.dart'; // ✅ 날짜 변환을 위해 추가
+
 
 class ChatListScreen extends StatefulWidget {
-  const ChatListScreen({super.key});
+  const ChatListScreen({Key? key}) : super(key: key);
 
   @override
   _ChatListScreenState createState() => _ChatListScreenState();
 }
 
 class _ChatListScreenState extends State<ChatListScreen> {
-  List<Map<String, dynamic>> chatRooms = [
-    {
-      "name": "복실이",
-      "lastMessage": "안녕! 😊",
-      "time": "오전 10:30",
-      "messages": [
-        {"text": "안녕! 😊", "time": "오전 10:30", "isSentByMe": "false"},
-      ],
-    },
-    {
-      "name": "별이",
-      "lastMessage": "오늘 산책 가고 싶어!",
-      "time": "오전 9:15",
-      "messages": [
-        {"text": "오늘 산책 가고 싶어!", "time": "오전 9:15", "isSentByMe": "false"},
-      ],
-    },
-  ];
+  final String serverUrl = 'http://122.46.89.124:7000';
+  final String userId = '1';
+  List<Map<String, dynamic>> chatRooms = [];
+
+  @override
+  void initState() {
+    super.initState();
+    fetchChatList();
+  }
+
+  /// 다양한 날짜 형식을 지원하는 변환 함수
+  String formatDate(String? dateTimeString) {
+    if (dateTimeString == null || dateTimeString.isEmpty) {
+      return "unknown";
+    }
+    try {
+      DateTime dateTime;
+      // 우선 ISO 8601 형식 파싱 시도
+      try {
+        dateTime = DateTime.parse(dateTimeString);
+      } catch (_) {
+        // ISO 형식이 아니면, 수동 변환 진행
+        String converted = dateTimeString
+            .replaceAll("년 ", "-")
+            .replaceAll("월 ", "-")
+            .replaceAll("일", "")
+            .replaceAll("시 ", ":")
+            .replaceAll("분 ", ":")
+            .replaceAll("초", "")
+            .replaceAll("UTC+0900", "")
+            .trim();
+
+        if (converted.contains("AM") || converted.contains("PM")) {
+          RegExp amPmRegex = RegExp(r'^(\d{4}-\d{2}-\d{2}) (AM|PM) (.+)$');
+          if (amPmRegex.hasMatch(converted)) {
+            converted = converted.replaceAllMapped(amPmRegex, (match) {
+              return "${match.group(1)} ${match.group(3)} ${match.group(2)}";
+            });
+            dateTime = DateFormat("yyyy-MM-dd hh:mm:ss a").parse(converted);
+          } else {
+            dateTime = DateFormat("yyyy-MM-dd hh:mm:ss a").parse(converted);
+          }
+        } else {
+          // 24시간 형식
+          dateTime = DateFormat("yyyy-MM-dd HH:mm:ss").parse(converted);
+        }
+      }
+      return DateFormat('MM/dd').format(dateTime);
+    } catch (e) {
+      print("⚠️ 날짜 변환 오류: $e");
+      return "unknown";
+    }
+  }
+
+  /// 서버에서 채팅 목록을 가져오는 함수
+  Future<void> fetchChatList() async {
+    print("🔄 [ChatListScreen] 채팅 목록을 불러오는 중...");
+    try {
+      final response = await http.get(
+        Uri.parse('$serverUrl/chat/chat/list/1'),
+        headers: {"Accept-Charset": "utf-8"},
+      );
+
+      print("🔍 서버 원본 응답: ${response.body}");
+
+      if (response.statusCode == 200) {
+        try {
+          final String utf8String = utf8.decode(response.bodyBytes);
+          final Map<String, dynamic> responseData = json.decode(utf8String);
+          //print("🔍 JSON 변환 성공: $responseData");
+
+          final List<dynamic>? chatList = responseData["chats"];
+
+          if (chatList == null || chatList.isEmpty) {
+            print("⚠️ 서버에서 받은 채팅 목록이 비어 있음!");
+            setState(() {
+              chatRooms = [];
+            });
+            return;
+          }
+
+          setState(() {
+            chatRooms = chatList
+                .where((chat) => chat["chat_id"] != null)
+                .map((chat) {
+              final lastMessage = chat["last_message"] ?? {};
+              return {
+                "chat_id": chat["chat_id"]?.toString() ?? "unknown_id",
+                "nickname": chat["nickname"]?.toString() ?? "알 수 없는 사용자",
+                "personality": chat["personality"]?.toString() ?? "unknown",
+                "create_at": formatDate(chat["create_at"]),
+                "last_active_at": formatDate(chat["last_active_at"]),
+                "last_message": {
+                  "content": lastMessage["content"]?.toString() ??
+                      "메시지가 없습니다.",
+                  "sender": lastMessage["sender"]?.toString() ?? "unknown",
+                  "timestamp": formatDate(lastMessage["timestamp"])
+                }
+              };
+            }).toList();
+
+            //print("✅ 변환된 chatRooms 데이터: $chatRooms");
+          });
+        } catch (jsonError) {
+          print("⚠️ JSON 변환 오류: $jsonError");
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("서버 응답을 처리할 수 없습니다.")),
+          );
+        }
+      } else {
+        print('❌ 서버 응답 오류: ${response.statusCode}');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("서버 오류: ${response.statusCode}")),
+        );
+      }
+    } catch (e) {
+      print('⚠️ 네트워크 오류 발생: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("서버에 연결할 수 없습니다. 네트워크를 확인하세요.")),
+      );
+    }
+  }
+
+  /// 채팅방 나가기 (삭제) 요청
+  Future<void> deleteChat(String chatId, int index) async {
+    final response = await http.delete(
+      Uri.parse('http://yourserver.com/chat/chat/$chatId/delete'),
+    );
+
+    if (response.statusCode == 200) {
+      setState(() {
+        chatRooms.removeAt(index);
+      });
+    } else {
+      print('채팅방 삭제 실패: ${response.statusCode}');
+    }
+  }
 
   void _leaveChat(int index) {
     showDialog(
@@ -49,13 +171,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
             ),
             TextButton(
               onPressed: () {
-                setState(() {
-                  chatRooms.removeAt(index);
-                });
+                deleteChat(chatRooms[index]["id"], index);
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("${chatRooms[index]["name"]} 채팅방을 나갔습니다.")),
-                );
               },
               child: Text("나가기", style: TextStyle(color: Colors.red)),
             ),
@@ -63,6 +180,12 @@ class _ChatListScreenState extends State<ChatListScreen> {
         );
       },
     );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    fetchChatList(); // ✅ 화면이 다시 나타날 때 채팅 목록 갱신
   }
 
   @override
@@ -74,13 +197,19 @@ class _ChatListScreenState extends State<ChatListScreen> {
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0,
-        shadowColor: Colors.transparent,
       ),
-      body: ListView.builder(
+      body: chatRooms.isEmpty
+          ? Center(
+        child: Text(
+          "채팅방이 없습니다.",
+          style: TextStyle(fontSize: 18, color: Colors.grey),
+        ),
+      )
+          : ListView.builder(
         itemCount: chatRooms.length,
         itemBuilder: (context, index) {
           return Dismissible(
-            key: Key(chatRooms[index]["name"]),
+            key: Key(chatRooms[index]["chat_id"] ?? "unknown_id"),
             direction: DismissDirection.endToStart,
             background: Container(
               color: Colors.red,
@@ -91,7 +220,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
                 children: [
                   Text(
                     "나가기",
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold),
                   ),
                   SizedBox(width: 10),
                   Icon(Icons.exit_to_app, color: Colors.white),
@@ -100,51 +231,36 @@ class _ChatListScreenState extends State<ChatListScreen> {
             ),
             confirmDismiss: (direction) async {
               _leaveChat(index);
-              return false; // ✅ 다이얼로그에서 직접 삭제 처리하기 때문에 여기선 false 반환
+              return false;
             },
             child: ListTile(
               leading: CircleAvatar(
                 backgroundColor: Colors.grey[300],
                 child: Icon(Icons.person, color: Colors.black),
               ),
-              title: Text(chatRooms[index]["name"]!),
-              subtitle: Text(chatRooms[index]["lastMessage"]!),
-              trailing: Text(chatRooms[index]["time"]!, style: TextStyle(color: Colors.grey)),
+              title: Text(
+                  chatRooms[index]["nickname"] ?? "알 수 없는 사용자"),
+              subtitle: Text(chatRooms[index]["last_message"]["content"] ??
+                  "메시지가 없습니다."),
+              trailing: Text(
+                chatRooms[index]["last_active_at"] ?? "unknown",
+                style: TextStyle(color: Colors.grey),
+              ),
               onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => ChatRoomScreen(
-                      friendName: chatRooms[index]["name"]!,
-                      initialMessages: chatRooms[index]["messages"] as List<Map<String, String>>,
-                      onMessageSent: (newMessage, newTime) {
-                        setState(() {
-                          chatRooms[index]["lastMessage"] = newMessage;
-                          chatRooms[index]["time"] = newTime;
-                          (chatRooms[index]["messages"] as List<Map<String, String>>).add({
-                            "text": newMessage,
-                            "time": newTime,
-                            "isSentByMe": "true",
-                          });
-                        });
-                      },
+                      chatId: chatRooms[index]["chat_id"] ?? "unknown_id",
+                      friendName: chatRooms[index]["nickname"] ?? "알 수 없는 사용자",
                     ),
                   ),
                 );
+                fetchChatList(); // ✅ 채팅방에서 나올 때 최신 메시지 다시 불러오기
               },
             ),
           );
         },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => CameraScreen()),
-          );
-        },
-        backgroundColor: Colors.black,
-        child: Icon(Icons.camera_alt, color: Colors.white),
       ),
       bottomNavigationBar: Bottombar(
         currentIndex: 2,
@@ -154,7 +270,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
               Navigator.pushReplacement(
                 context,
                 PageRouteBuilder(
-                  pageBuilder: (context, animation, secondaryAnimation) => HomeScreen(),
+                  pageBuilder: (context, animation, secondaryAnimation) =>
+                      HomeScreen(),
                   transitionDuration: Duration.zero,
                 ),
               );
@@ -163,17 +280,18 @@ class _ChatListScreenState extends State<ChatListScreen> {
               Navigator.pushReplacement(
                 context,
                 PageRouteBuilder(
-                  pageBuilder: (context, animation, secondaryAnimation) => VillageScreen(),
+                  pageBuilder: (context, animation, secondaryAnimation) =>
+                      VillageScreen(),
                   transitionDuration: Duration.zero,
                 ),
               );
               break;
-            case 2: // ✅ 채팅 리스트 화면으로 이동하도록 수정
+            case 2:
               Navigator.pushReplacement(
                 context,
                 PageRouteBuilder(
                   pageBuilder: (context, animation, secondaryAnimation) =>
-                      ChatListScreen(), // ✅ 채팅 리스트 화면으로 변경
+                      ChatListScreen(),
                   transitionDuration: Duration.zero,
                 ),
               );

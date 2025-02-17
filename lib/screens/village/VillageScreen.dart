@@ -51,12 +51,12 @@ class _VillageScreenState extends State<VillageScreen>{
                 ),
               );
               break;
-            case 2:
+            case 2: // ✅ 채팅 리스트 화면으로 이동
               Navigator.pushReplacement(
                 context,
                 PageRouteBuilder(
                   pageBuilder: (context, animation, secondaryAnimation) =>
-                      ChatListScreen(),
+                      ChatListScreen(), // ✅ userId 전달 제거
                   transitionDuration: Duration.zero,
                 ),
               );
