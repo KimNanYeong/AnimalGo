@@ -1,3 +1,5 @@
+import 'package:animalgo/components/SnackbarHelper.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'FriendList.dart'; // FriendList 임포트
 import '../../components/BottomBar.dart'; // BottomNavBar 컴포넌트 임포트
@@ -32,7 +34,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   // Navigater.pushReplacement(context,)
 
-  List<Map<String, String>> friends = []; // ✅ 상태로 관리할 친구 목록
+  List<Map<String, dynamic>> friends = []; // ✅ 상태로 관리할 친구 목록
 
   @override
   void initState() {
@@ -54,38 +56,84 @@ Future<void> _checkSession() async {
       return;
     }
 
-    _fetchFriends(); // ✅ 토큰이 있으면 친구 목록 불러오기
+    _fetchFriends(token); // ✅ 토큰이 있으면 친구 목록 불러오기
   }
 
-  void _fetchFriends() async {
-    try {
-      var response = await ApiService().get(
-        "/friends",
-        params: {"userId": "1234"},
+  void _fetchFriends(String token) async {
+    FormData formData = FormData.fromMap({
+      'user_id' : token??"1"
+    });
+
+    try{
+      Dio _dio = Dio(
+        BaseOptions(
+          baseUrl: "http://122.46.89.124:7000", // ✅ 서버 기본 주소 설정
+          connectTimeout: Duration(seconds: 10), // ✅ 연결 타임아웃 (10초)
+          receiveTimeout: Duration(seconds: 10), // ✅ 응답 타임아웃 (10초)
+          headers: {"Content-Type": "application/json"}, // ✅ 기본 헤더 설정
+        ),
       );
 
-      setState(() {
-        Map<String,dynamic> responseMap = response as Map<String, dynamic>;
-      
-      // 2. friendList 키로 리스트 추출 (없으면 빈 리스트 사용)
-        List<dynamic> friendList = responseMap['friendList'] ?? [];
-        
-        friends = friendList.map<Map<String, String>>((friend) {
-        return {
-          "name": friend["name"] as String,
-          "image": friend["image"] as String,
-        };
-      }).toList();
-        // friends = (response as List).map((friend) {
-        //   return {
-        //     "name": friend["name"] as String,
-        //     "image": friend["image"] as String,
-        //   };
-        // }).toList();
-      });
-    } catch (error) {
-      print("친구 목록 불러오기 실패: $error");
+      var response = await _dio.post('/home/characters',data:formData);
+      if(response.statusCode==200){
+        setState(() {
+          Map<String,dynamic> responseMap = response.data as Map<String,dynamic>;
+          List<dynamic> friendList = responseMap['characters'] ?? [];
+          friends = friendList.map((friend) {
+            return {
+              "name": friend["nickname"],
+              "image": friend["character_path"],
+              "character_id" : friend["character_id"]
+            };
+          }).toList();
+          // friends = friendList.map<Map<String,String>((friend){
+          //     return {
+          //       'name' : friend['nickname'],
+          //       'image' : friend['character_path'],
+          //       'character_id' : friend['caracter_id']
+          //     }
+          // });
+        });
+      }
+    } on DioException catch(e){
+
+    } catch(e1){
+      print(e1);
+      SnackbarHelper.showSnackbar(context, "서버에 오류가 발생했습니다.");
     }
+    // try {
+      
+    //   FormData formData = FormData.fromMap({
+    //     "user_id" : token
+    //   });
+
+    //   var response = await _dio.get('/home/characters',data : formData);
+    //   if (response.statusCode == 200){
+
+    //   }
+
+    //   setState(() {
+    //     Map<String,dynamic> responseMap = response as Map<String, dynamic>;
+      
+    //   // 2. friendList 키로 리스트 추출 (없으면 빈 리스트 사용)
+    //     List<dynamic> friendList = responseMap['friendList'] ?? [];
+        
+    //     friends = friendList.map<Map<String, String>>((friend) {
+    //     return {
+    //       "name": friend["name"] as String,
+    //       "image": friend["image"] as String,
+    //     };
+    //   }).toList();
+    //     // friends = (response as List).map((friend) {
+    //     //   return {
+    //     //     "name": friend["name"] as String,
+    //     //     "image": friend["image"] as String,
+    //     //   };
+    //     // }).toList();
+    //   });
+    // } catch (error) {
+    //   print("친구 목록 불러오기 실패: $error");
+    // }
   }
 
   @override

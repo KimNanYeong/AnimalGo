@@ -105,7 +105,7 @@ class _LoginScreenState extends State<LoginScreen> {
           await prefs.setString("cookie", cookie);
           print("쿠키 저장 완료: $cookie");
         }
-        Navigator.push(
+        Navigator.pushReplacement(
             context,
             // 'HomeScreen' // MaterialPageRoute(builder: (context) => HomeScreen()
             PageRouteBuilder(
