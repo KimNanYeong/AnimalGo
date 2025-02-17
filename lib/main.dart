@@ -9,6 +9,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import './routes/app_router.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/date_symbol_data_local.dart'; // ✅ 날짜 데이터 초기화 추가
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 
 
 void main() async {
@@ -19,6 +21,8 @@ void main() async {
   ]);
   WidgetsFlutterBinding.ensureInitialized(); // ✅ Flutter 엔진과 위젯 바인딩
   await initializeDateFormatting('ko_KR', null); // ✅ 한국어 날짜 데이터 초기화
+  await dotenv.load(fileName: ".env");//dotenv 추가
+  // await dotenv.load();
   runApp(
     MultiProvider(
       providers: [

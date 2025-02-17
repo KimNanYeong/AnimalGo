@@ -2,6 +2,7 @@ import 'package:animalgo/components/SnackbarHelper.dart';
 import 'package:animalgo/screens/login/LoginScreen.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 // import 'package:animalgo/service/ApiService.dart';
 
 class RegistScreen extends StatefulWidget {
@@ -128,7 +129,7 @@ class _RegistScreenState extends State<RegistScreen> {
       });
       Dio _dio = Dio(
         BaseOptions(
-          baseUrl: "http://122.46.89.124:7000", // ✅ 서버 기본 주소 설정
+          baseUrl: dotenv.env["SERVER_URL"] ?? 'default', // ✅ 서버 기본 주소 설정
           connectTimeout: Duration(seconds: 10), // ✅ 연결 타임아웃 (10초)
           receiveTimeout: Duration(seconds: 10), // ✅ 응답 타임아웃 (10초)
           headers: {"Content-Type": "application/json"}, // ✅ 기본 헤더 설정
