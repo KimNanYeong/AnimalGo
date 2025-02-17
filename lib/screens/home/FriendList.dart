@@ -1,6 +1,7 @@
 // friend_list.dart
 import 'package:flutter/material.dart';
 import 'FriendInfoPopup.dart'; // 팝업 모듈 임포트
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class FriendList extends StatelessWidget {
   final List<Map<String, dynamic>> friends;
@@ -50,9 +51,9 @@ class FriendList extends StatelessWidget {
                           backgroundColor: Colors.transparent,
                           builder: (BuildContext context) {
                             return FriendInfoPopup(
-                              friendName: friend["name"]!,
-                              friendImage: friend["image"]!,
-                              friendId : friend['character_id']
+                              nickname: friend["nickname"]!,
+                              // friendImage: friend["image"]!,
+                              character_id : friend['character_id']
                             );
                           },
                         );
@@ -60,11 +61,11 @@ class FriendList extends StatelessWidget {
                       child: ListTile(
                         leading: CircleAvatar(
                           // backgroundImage: AssetImage(friend["image"]!),
-                          backgroundImage: NetworkImage("http://122.46.89.124:7000/image/show_image?character_id=${friend['character_id']}"),
+                          backgroundImage: NetworkImage("${dotenv.env['SERVER_URL']}/image/show_image?character_id=${friend['character_id']}"),
                           radius: 25,
                         ),
                         title: Text(
-                          friend["name"]!,
+                          friend["nickname"]!,
                           style: TextStyle(fontSize: 16),
                         ),
                       ),

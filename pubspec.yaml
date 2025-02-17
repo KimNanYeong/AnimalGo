@@ -54,6 +54,8 @@ dependencies:
   flame_forge2d: ^0.18.2+5
   webview_flutter: ^4.10.0
   flutter_joystick: ^0.2.1
+  flutter_dotenv: ^5.2.1
+
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   
@@ -108,6 +110,7 @@ flutter:
     - assets/images/google.webp
     - assets/images/kakao.png
     - assets/images/naver.png
+    - assets/.env
 
   
   #   - images/a_dot_ham.jpeg

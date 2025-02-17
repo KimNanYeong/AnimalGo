@@ -7,6 +7,7 @@ import '../home/HomeScreen.dart';
 import 'package:dio/dio.dart';
 import 'package:dio/src/form_data.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -84,7 +85,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
     Dio _dio = Dio(
       BaseOptions(
-        baseUrl: "http://122.46.89.124:7000", // ✅ 서버 기본 주소 설정
+        baseUrl: dotenv.env["SERVER_URL"] ?? 'default', // ✅ 서버 기본 주소 설정
         connectTimeout: Duration(seconds: 10), // ✅ 연결 타임아웃 (10초)
         receiveTimeout: Duration(seconds: 10), // ✅ 응답 타임아웃 (10초)
         headers: {"Content-Type": "application/json"}, // ✅ 기본 헤더 설정
