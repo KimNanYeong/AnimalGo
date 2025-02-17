@@ -21,7 +21,7 @@ void main() async {
   ]);
   WidgetsFlutterBinding.ensureInitialized(); // ✅ Flutter 엔진과 위젯 바인딩
   await initializeDateFormatting('ko_KR', null); // ✅ 한국어 날짜 데이터 초기화
-  await dotenv.load(fileName: ".env");//dotenv 추가
+  await dotenv.load(fileName: "assets/.env");//dotenv 추가
   // await dotenv.load();
   runApp(
     MultiProvider(
