@@ -1,3 +1,4 @@
+import 'package:animalgo/screens/chat/ChatRoomScreen.dart';
 import 'package:flutter/material.dart';
 import '../character/CharacterScreen.dart';
 
@@ -63,6 +64,7 @@ class FriendInfoPopup extends StatelessWidget {
                         ElevatedButton(
                           onPressed: () {
                             // 채팅하기 버튼 동작 추가
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => ChatRoomScreen(chatId:character_id, friendName: nickname)));
                             print('채팅하기 버튼 눌림');
                           },
                           style: ElevatedButton.styleFrom(
