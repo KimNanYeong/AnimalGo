@@ -26,6 +26,7 @@ class _MetadataDropdownScreenState extends State<MetadataDropdownScreen> {
   String? selectedAppearance;
   String? selectedPersonality;
   String? selectedAnimal;
+  String? savedCharacterId;
 
   final TextEditingController nicknameController = TextEditingController();
   final List<String> animalOptions = [
@@ -42,7 +43,6 @@ class _MetadataDropdownScreenState extends State<MetadataDropdownScreen> {
   Future<void> _saveDataToServer() async {
     final String serverUrl = "http://122.46.89.124:7000/home/upload-original-image";
 
-    // ✅ 필수 값이 선택되었는지 확인
     if (selectedAppearance == null || selectedPersonality == null || selectedAnimal == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('외모, 성격, 동물의 종을 모두 선택하세요.')),
@@ -53,22 +53,14 @@ class _MetadataDropdownScreenState extends State<MetadataDropdownScreen> {
     try {
       var request = http.MultipartRequest('POST', Uri.parse(serverUrl));
 
-      // ✅ null 값 방지 및 기본값 설정
       request.fields['user_id'] = "1";
-      request.fields['appearance'] = selectedAppearance ?? "기본 외모";
-      request.fields['personality'] = selectedPersonality ?? "기본 성격";
-      request.fields['animaltype'] = selectedAnimal ?? "기본 동물";
+      request.fields['appearance'] = selectedAppearance!;
+      request.fields['personality'] = selectedPersonality!;
+      request.fields['animaltype'] = selectedAnimal!;
 
-      // ✅ 파일 확인 및 추가
       File file = File(widget.originalImagePath);
       if (!file.existsSync()) {
         print("❌ 파일이 존재하지 않습니다: ${widget.originalImagePath}");
-        return;
-      }
-
-      int fileSize = file.lengthSync();
-      if (fileSize == 0) {
-        print("❌ 파일이 비어 있습니다: ${widget.originalImagePath}");
         return;
       }
 
@@ -76,20 +68,55 @@ class _MetadataDropdownScreenState extends State<MetadataDropdownScreen> {
         await http.MultipartFile.fromPath('file', file.path),
       );
 
-      // ✅ 요청 보내기
       var response = await request.send();
+      final responseData = await response.stream.bytesToString();
+
+      print("🔹 서버 응답 본문: $responseData");
 
       if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('서버에 데이터 저장 성공')),
-        );
-        print('✅ 서버에 데이터 저장 성공');
+        try {
+          final jsonResponse = jsonDecode(responseData);
+          if (!jsonResponse.containsKey('characterId')) {
+            print("❌ 서버 응답 오류: 'characterId' 필드가 없음");
+            return;
+          }
+
+          setState(() {
+            savedCharacterId = jsonResponse['characterId'];
+          });
+
+          print("✅ 서버에서 받은 character_id: $savedCharacterId");
+
+          // ✅ character_id를 `get_picture.dart`로 전달할 때 null 체크 추가
+          if (savedCharacterId == null || savedCharacterId!.isEmpty) {
+            print("❌ characterId가 NULL이거나 비어 있음!");
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("characterId가 유효하지 않습니다. 다시 시도하세요.")),
+            );
+            return;
+          }
+
+
+          // ✅ `get_picture.dart`로 이동하면서 characterId와 originalImagePath 전달
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ImageFromServer(
+                characterId: savedCharacterId!,
+                originalImagePath: widget.originalImagePath,
+              ),
+            ),
+          );
+        } catch (e) {
+          print("❌ JSON 파싱 실패: $e");
+          print("🔹 서버 응답 (비 JSON 형식일 가능성 있음): $responseData");
+        }
       } else {
-        print('❌ 서버 오류: ${response.statusCode}');
-        print('❌ 서버 응답 본문: ${await response.stream.bytesToString()}');
+        print("❌ 서버 오류: ${response.statusCode}");
+        print("❌ 서버 응답 본문: $responseData");
       }
     } catch (e) {
-      print('❌ 서버 저장 실패: $e');
+      print("❌ 서버 저장 실패: $e");
     }
   }
 
@@ -219,10 +246,7 @@ class _MetadataDropdownScreenState extends State<MetadataDropdownScreen> {
               child: ElevatedButton(
                 onPressed: () async {
                   await _saveDataToServer(); // ✅ 서버에 데이터 저장 실행
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => ImageFromServer()), // ✅ 새로운 화면으로 이동
-                  );
+
                 },
                 child: const Text('저장 후 이미지 보기'),
               ),
