@@ -1,31 +1,82 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- 카메라 사용 권한 추가 -->
     <uses-permission android:name="android.permission.CAMERA"/>
-    
-    <!-- 저장소 사용 권한 추가 (선택 사항) -->
+    <!-- 외부 저장소 읽기 및 쓰기 권한 요청 (Android 10 이하) -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <!-- 오디오 녹음 권한 (필요한 경우) -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <!-- 외부 저장소 전체 관리 권한 (Android 11 이상) -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"/>
+    <!-- 카메라 기능 요구 -->
+    <uses-feature android:name="android.hardware.camera"/>
+    <uses-feature android:name="android.hardware.camera.autofocus"/>
     <application
         android:label="animalgo"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:requestLegacyExternalStorage="true" 
+        android:networkSecurityConfig="@xml/network_security_config" 
+        android:largeHeap="true"
+        android:hardwareAccelerated="true">
+        <!-- 앱의 이름 설정 -->
+        <!-- android:label="open_cv" -->
+
+        <!-- 앱의 아이콘을 설정 -->
+        <!-- android:icon="@mipmap/ic_launcher" -->
+
+        <!-- Android 10 이하에서 기존 저장소 방식을 유지 -->
+        <!-- android:requestLegacyExternalStorage="true" -->
+
+        <!-- 네트워크 보안 설정 적용 -->
+        <!-- android:networkSecurityConfig="@xml/network_security_config" -->
+
+        <!-- 메모리 사용량을 높일 수 있도록 설정 -->
+        <!-- android:largeHeap="true" -->
+
+        <!-- 하드웨어 가속 활성화 -->
+        <!-- android:hardwareAccelerated="true" -->
         <activity
-            android:name=".MainActivity"
-            android:exported="true"
-            android:launchMode="singleTop"
-            android:taskAffinity=""
+            android:name=".MainActivity" 
+            android:exported="true"  
+            android:launchMode="singleTop" 
+            android:taskAffinity="" 
             android:theme="@style/LaunchTheme"
-            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
-            android:hardwareAccelerated="true"
-            android:windowSoftInputMode="adjustResize">
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode" 
+            android:hardwareAccelerated="true" 
+            android:windowSoftInputMode="adjustResize"> 
+            <!-- 앱의 메인 액티비티 설정 -->
+            <!-- android:name=".MainActivity" -->
+
+            <!-- 다른 앱에서 접근 가능 여부 설정 -->
+            <!-- android:exported="true" -->
+
+            <!-- 동일 액티비티 여러 개 생성 방지 (singleTop 모드) -->
+            <!-- android:launchMode="singleTop" -->
+
+            <!-- 기본 태스크 그룹 유지 -->
+            <!-- android:taskAffinity="" -->
+
+            <!-- 런처 테마 적용 -->
+            <!-- android:theme="@style/LaunchTheme" -->
+
+            <!-- 앱의 UI 변경 시 재시작 방지 -->
+            <!-- android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode" -->
+
+            <!-- 하드웨어 가속 활성화 -->
+            <!-- android:hardwareAccelerated="true" -->
+
+            <!-- 키보드 표시 시 UI 자동 조정 -->
+            <!-- android:windowSoftInputMode="adjustResize" -->
             <!-- Specifies an Android theme to apply to this Activity as soon as
                  the Android process has started. This theme is visible to the user
                  while the Flutter UI initializes. After that, this theme continues
                  to determine the Window background behind the Flutter UI. -->
+            <!-- Flutter에서 초기 UI 테마 설정 -->
             <meta-data
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
-              />
+            />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
@@ -33,6 +84,17 @@
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
+        <!-- Flutter가 자동으로 플러그인을 등록할 수 있도록 메타데이터 설정 -->
+        
+        <!-- Impeller 렌더링 비활성화 (일부 기기에서 성능 문제 발생 가능) -->
+        <meta-data
+            android:name="flutter.renderer"
+            android:value="software" />     
+        <!-- ExoPlayer (비디오 재생 관련 기능) 비활성화 -->
+        <meta-data
+            android:name="flutter.io.camera.useExoPlayer"
+            android:value="false" />    
+        <!-- Flutter 임베딩 버전 설정 -->    
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
@@ -42,7 +104,10 @@
          https://developer.android.com/reference/android/content/Intent#ACTION_PROCESS_TEXT.
 
          In particular, this is used by the Flutter engine in io.flutter.plugin.text.ProcessTextPlugin. -->
+    <!-- 특정 앱이나 인텐트를 검색할 수 있도록 설정 (Android 11 이상) -->     
     <queries>
+        <!-- 기본 카메라 앱 사용 가능하도록 설정 -->
+        <package android:name="com.android.camera"/>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>

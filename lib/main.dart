@@ -1,22 +1,52 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'screens/camera/CameraScreen.dart';
+// import 'package:open_cv/screens/camera/setting/animal_characteristics_provider.dart';
+import 'screens/camera/setting/network_provider.dart';
+import 'screens/camera/setting/settings_provider.dart';
+import 'screens/home/HomeScreen.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import './routes/app_router.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/date_symbol_data_local.dart'; // ✅ 날짜 데이터 초기화 추가
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-void main() {
+
+
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,  // 세로 모드로 고정
   ]);
-  runApp(MyApp());
+  // ✅ 디버그 페인트 비활성화 (디버그 UI 가이드 제거)
+  debugPaintSizeEnabled = false;
+  WidgetsFlutterBinding.ensureInitialized(); // ✅ Flutter 엔진과 위젯 바인딩
+  await initializeDateFormatting('ko_KR', null); // ✅ 한국어 날짜 데이터 초기화
+  await dotenv.load(fileName: "assets/.env");//dotenv 추가
+  // await dotenv.load();
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => NetworkProvider()), // ✅ 네트워크 프로바이더 추가
+        ChangeNotifierProvider(create: (_) => SettingsProvider(prefs)), // ✅ 설정 관련 프로바이더
+        // ChangeNotifierProvider(create: (_) => AnimalCharacteristicsProvider()), // ✅ 동물 특성 관련 프로바이더
+      ],
+      child: MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget{
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false, // ✅ 디버그 배너 제거
       title: 'Flutter Navigation',
       initialRoute: AppRouter.home,
       onGenerateRoute: AppRouter.generateRoute,
+      home: HomeScreen(),
     );
   }
 }

@@ -1,16 +1,16 @@
 // friend_list.dart
 import 'package:flutter/material.dart';
 import 'FriendInfoPopup.dart'; // 팝업 모듈 임포트
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class FriendList extends StatelessWidget {
-  final List<Map<String, String>> friends;
+  final List<Map<String, dynamic>> friends;
 
   const FriendList({Key? key, required this.friends}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     final double borderRadiusValue = 10.0;
-
     return Container(
       color: Colors.white, // 리스트 전체 컨테이너의 배경색 지정
       child: friends.isEmpty
@@ -51,19 +51,21 @@ class FriendList extends StatelessWidget {
                           backgroundColor: Colors.transparent,
                           builder: (BuildContext context) {
                             return FriendInfoPopup(
-                              friendName: friend["name"]!,
-                              friendImage: friend["image"]!,
+                              nickname: friend["nickname"]!,
+                              // friendImage: friend["image"]!,
+                              character_id : friend['character_id']
                             );
                           },
                         );
                       },
                       child: ListTile(
                         leading: CircleAvatar(
-                          backgroundImage: AssetImage(friend["image"]!),
+                          // backgroundImage: AssetImage(friend["image"]!),
+                          backgroundImage: NetworkImage("${dotenv.env['SERVER_URL']}/image/show_image?character_id=${friend['character_id']}"),
                           radius: 25,
                         ),
                         title: Text(
-                          friend["name"]!,
+                          friend["nickname"]!,
                           style: TextStyle(fontSize: 16),
                         ),
                       ),

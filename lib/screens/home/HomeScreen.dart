@@ -1,21 +1,17 @@
+import 'package:animalgo/components/SnackbarHelper.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'FriendList.dart'; // FriendList 임포트
 import '../../components/BottomBar.dart'; // BottomNavBar 컴포넌트 임포트
 import '../../components/TopBar.dart'; // CustomAppBar 임포트
 import '../../service/ApiService.dart';
 import '../camera/CameraScreen.dart';
-
-// class HomeScreen extends StatelessWidget {
-//   final List<Map<String, String>> friends = [
-//     {"name": "복실이", "image": "assets/images/dog1.png"},
-//     {"name": "별이", "image": "assets/images/dog2.png"},
-//     {"name": "초코", "image": "assets/images/dog3.png"},
-//     {"name": "구름", "image": "assets/images/dog1.png"},
-//     {"name": "해피", "image": "assets/images/dog2.png"},
-//     {"name": "뽀삐", "image": "assets/images/dog3.png"},
-//     {"name": "토리", "image": "assets/images/dog1.png"},
-//     {"name": "루루", "image": "assets/images/dog2.png"},
-//   ];
+import '../login/LoginScreen.dart';
+import '../myPage/my_page.dart';
+import '../chat/ChatListScreen.dart'; // ✅ 채팅 리스트 화면 추가
+import 'package:shared_preferences/shared_preferences.dart';
+import '../village_test/Village.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -24,56 +20,87 @@ class HomeScreen extends StatefulWidget {
   _HomeScreenState createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  List<Map<String, String>> friends = []; // ✅ 상태로 관리할 친구 목록
-  
+class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMixin {
+  List<Map<String, dynamic>> friends = []; // ✅ 상태로 관리할 친구 목록
+  bool isLoading = true; // ✅ 로딩 상태 관리
 
   @override
   void initState() {
     super.initState();
-    _fetchFriends(); // 친구 목록 불러오기
+    _checkSession();
   }
 
-  void _fetchFriends() async {
+  Future<void> _checkSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('cookie'); // ✅ 쿠키 값 가져오기
+
+    if (token == null || token.isEmpty) {
+      // ✅ 토큰이 없으면 로그인 화면으로 이동
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => LoginScreen()),
+      );
+      return;
+    }
+
+    await _fetchFriends(token); // ✅ 토큰이 있으면 친구 목록 불러오기
+  }
+
+  Future<void> _fetchFriends(String token) async {
+    FormData formData = FormData.fromMap({
+      'user_id': token ?? "1"
+    });
+
     try {
-      var response = await ApiService().get(
-        "/friends",
-        params: {"userId": "1234"},
+      Dio _dio = Dio(
+        BaseOptions(
+          baseUrl: dotenv.env['SERVER_URL'] ?? 'default_value', // ✅ 서버 기본 주소 설정
+          connectTimeout: Duration(seconds: 10), // ✅ 연결 타임아웃 (10초)
+          receiveTimeout: Duration(seconds: 10), // ✅ 응답 타임아웃 (10초)
+          headers: {"Content-Type": "application/json"}, // ✅ 기본 헤더 설정
+        ),
       );
 
+      var response = await _dio.post('/home/characters', data: formData);
+      if (response.statusCode == 200) {
+        setState(() {
+          Map<String, dynamic> responseMap = response.data as Map<String, dynamic>;
+          List<dynamic> friendList = responseMap['characters'] ?? [];
+          friends = friendList.map((friend) {
+            return {
+              "nickname": friend["nickname"],
+              // "image": friend["character_path"],
+              "character_id" : friend["character_id"]
+            };
+          }).toList();
+          isLoading = false; // ✅ 로딩 상태 업데이트
+        });
+      }
+    } on DioException catch(e){
       setState(() {
-        Map<String,dynamic> responseMap = response as Map<String, dynamic>;
-      
-      // 2. friendList 키로 리스트 추출 (없으면 빈 리스트 사용)
-        List<dynamic> friendList = responseMap['friendList'] ?? [];
-        
-        friends = friendList.map<Map<String, String>>((friend) {
-        return {
-          "name": friend["name"] as String,
-          "image": friend["image"] as String,
-        };
-      }).toList();
-        // friends = (response as List).map((friend) {
-        //   return {
-        //     "name": friend["name"] as String,
-        //     "image": friend["image"] as String,
-        //   };
-        // }).toList();
+        isLoading = false; // ✅ 로딩 상태 업데이트
       });
-    } catch (error) {
-      print("친구 목록 불러오기 실패: $error");
+    } catch(e1){
+      print(e1);
+      SnackbarHelper.showSnackbar(context, "서버에 오류가 발생했습니다.");
+      setState(() {
+        isLoading = false; // ✅ 로딩 상태 업데이트
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // AutomaticKeepAliveClientMixin을 사용하려면 필요합니다.
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: Topbar(
         title: "내 친구들 (${friends.length})",
-        // showBackButton : true
+        showBackButton : false,
       ), // CustomAppBar 사용
-      body: FriendList(friends: friends), // FriendList 위젯 사용
+      body: isLoading
+          ? Center(child: CircularProgressIndicator()) // 로딩 중일 때 표시할 위젯
+          : FriendList(friends: friends), // 데이터 로드 완료 시 표시할 위젯
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           Navigator.push(
@@ -103,17 +130,17 @@ class _HomeScreenState extends State<HomeScreen> {
                 context,
                 PageRouteBuilder(
                   pageBuilder: (context, animation, secondaryAnimation) =>
-                      HomeScreen(),
+                      VillageScreen(),
                   transitionDuration: Duration.zero,
                 ),
               );
               break;
-            case 2:
+            case 2: // ✅ 채팅 리스트 화면으로 이동
               Navigator.pushReplacement(
                 context,
                 PageRouteBuilder(
                   pageBuilder: (context, animation, secondaryAnimation) =>
-                      HomeScreen(),
+                      ChatListScreen(), // ✅ userId 전달 제거
                   transitionDuration: Duration.zero,
                 ),
               );
@@ -123,7 +150,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 context,
                 PageRouteBuilder(
                   pageBuilder: (context, animation, secondaryAnimation) =>
-                      HomeScreen(),
+                      MyPage(),
                   transitionDuration: Duration.zero,
                 ),
               );
@@ -133,4 +160,8 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
+  @override
+  bool get wantKeepAlive => true; // 상태를 유지하도록 설정
 }
+

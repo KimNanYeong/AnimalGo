@@ -1,19 +1,22 @@
+import 'package:animalgo/screens/chat/ChatRoomScreen.dart';
 import 'package:flutter/material.dart';
+import '../character/CharacterScreen.dart';
 
 class FriendInfoPopup extends StatelessWidget {
-  final String friendName;
-  final String friendImage;
+  final String nickname;
+  // final String friendImage;
+  final String character_id;
 
   const FriendInfoPopup({
     Key? key,
-    required this.friendName,
-    required this.friendImage,
+    required this.nickname,
+    // required this.friendImage,
+    required this.character_id,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width; // 화면 너비
-
     return GestureDetector(
       onTap: () {
         // 바깥쪽 클릭 시 팝업 닫기
@@ -37,8 +40,8 @@ class FriendInfoPopup extends StatelessWidget {
                   children: [
                     // 이미지가 동그랗게 보이도록 처리
                     ClipOval(
-                      child: Image.asset(
-                        friendImage,
+                      child: Image.network(
+                        "http://122.46.89.124:7000/image/show_image?character_id=${character_id}",
                         width: screenWidth * 0.5, // 화면 너비의 40%로 크기 설정
                         height: screenWidth * 0.5, // 화면 너비의 40%로 크기 설정
                         fit: BoxFit.cover,
@@ -47,7 +50,7 @@ class FriendInfoPopup extends StatelessWidget {
                     SizedBox(height: 20),
                     // 닉네임
                     Text(
-                      friendName,
+                      nickname,
                       style: TextStyle(
                         fontSize: screenWidth * 0.07, // 화면 너비의 7%로 글자 크기 설정
                         fontWeight: FontWeight.bold,
@@ -61,6 +64,7 @@ class FriendInfoPopup extends StatelessWidget {
                         ElevatedButton(
                           onPressed: () {
                             // 채팅하기 버튼 동작 추가
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => ChatRoomScreen(chatId:character_id, friendName: nickname)));
                             print('채팅하기 버튼 눌림');
                           },
                           style: ElevatedButton.styleFrom(
@@ -77,24 +81,25 @@ class FriendInfoPopup extends StatelessWidget {
                           ),
                         ),
                         SizedBox(width: 10),
-                        // ElevatedButton(
-                        //   onPressed: () {
-                        //     // 상세보기 버튼 동작 추가
-                        //     print('상세보기 버튼 눌림');
-                        //   },
-                        //   style: ElevatedButton.styleFrom(
-                        //     backgroundColor: Colors.grey,
-                        //     minimumSize: Size(screenWidth * 0.35, 50), // 화면 너비의 35%로 버튼 크기 설정
-                        //     padding: EdgeInsets.symmetric(vertical: 10),
-                        //   ),
-                        //   child: Text(
-                        //     '상세보기',
-                        //     style: TextStyle(
-                        //       fontSize: screenWidth * 0.05, // 화면 너비의 4%로 글자 크기 설정
-                        //       color: Colors.white
-                        //     ),
-                        //   ),
-                        // ),
+                        ElevatedButton(
+                          onPressed: () {
+                            // 상세보기 버튼 동작 추가
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => CharacterScreen(character_id : character_id)));
+                            print('상세보기 버튼 눌림');
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.grey,
+                            minimumSize: Size(screenWidth * 0.35, 50), // 화면 너비의 35%로 버튼 크기 설정
+                            padding: EdgeInsets.symmetric(vertical: 10),
+                          ),
+                          child: Text(
+                            '상세보기',
+                            style: TextStyle(
+                              fontSize: screenWidth * 0.05, // 화면 너비의 4%로 글자 크기 설정
+                              color: Colors.white
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ],
