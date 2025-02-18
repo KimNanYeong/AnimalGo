@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../../components/BottomBar.dart';
@@ -7,6 +8,7 @@ import '../village/VillageScreen.dart';
 import 'ChatRoomScreen.dart';
 import '../myPage/my_page.dart';
 import 'package:intl/intl.dart'; // ✅ 날짜 변환을 위해 추가
+
 class ChatListScreen extends StatefulWidget {
   const ChatListScreen({Key? key}) : super(key: key);
 
@@ -69,7 +71,16 @@ class _ChatListScreenState extends State<ChatListScreen> {
     }
   }
 
-  /// 서버에서 채팅 목록을 가져오는 함수
+  /// ✅ 기존 데이터와 비교하여 변경이 있을 때만 `setState()` 실행
+  bool deepEqual(List<Map<String, dynamic>> oldData, List<Map<String, dynamic>> newData) {
+    if (oldData.length != newData.length) return false;
+    for (int i = 0; i < oldData.length; i++) {
+      if (!mapEquals(oldData[i], newData[i])) return false;
+    }
+    return true;
+  }
+
+  /// ✅ 최적화된 API 호출 (불필요한 갱신 방지)
   Future<void> fetchChatList() async {
     print("🔄 [ChatListScreen] 채팅 목록을 불러오는 중...");
     try {
@@ -85,33 +96,38 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
         if (chatList == null || chatList.isEmpty) {
           print("⚠️ 서버에서 받은 채팅 목록이 비어 있음!");
-          setState(() {
-            chatRooms = [];
-          });
+          setState(() => chatRooms = []);
           return;
         }
 
-        setState(() { // ✅ setState로 강제 갱신
-          chatRooms = chatList
-              .where((chat) => chat["chat_id"] != null)
-              .map((chat) {
-            final lastMessage = chat["last_message"] ?? {};
-            return {
-              "chat_id": chat["chat_id"]?.toString() ?? "unknown_id",
-              "nickname": chat["nickname"]?.toString() ?? "알 수 없는 사용자",
-              "personality": chat["personality"]?.toString() ?? "unknown",
-              "create_at": formatDate(chat["create_at"]),
-              "last_active_at": formatDate(chat["last_active_at"]),
-              "last_message": {
-                "content": lastMessage["content"]?.toString() ?? "메시지가 없습니다.",
-                "sender": lastMessage["sender"]?.toString() ?? "unknown",
-                "timestamp": formatDate(lastMessage["timestamp"])
-              }
-            };
-          }).toList();
-        });
+        /// 새롭게 가져온 데이터 변환
+        List<Map<String, dynamic>> newChatRooms = chatList
+            .where((chat) => chat["chat_id"] != null)
+            .map((chat) {
+          final lastMessage = chat["last_message"] ?? {};
+          return {
+            "chat_id": chat["chat_id"]?.toString() ?? "unknown_id",
+            "nickname": chat["nickname"]?.toString() ?? "알 수 없는 사용자",
+            "personality": chat["personality"]?.toString() ?? "unknown",
+            "create_at": formatDate(chat["create_at"]),
+            "last_active_at": formatDate(chat["last_active_at"]),
+            "last_message": {
+              "content": lastMessage["content"]?.toString() ?? "메시지가 없습니다.",
+              "sender": lastMessage["sender"]?.toString() ?? "unknown",
+              "timestamp": formatDate(lastMessage["timestamp"])
+            }
+          };
+        }).toList();
 
-        print("✅ 최신 채팅 목록으로 갱신됨!");
+        /// ✅ 데이터가 변경된 경우에만 업데이트
+        if (!deepEqual(chatRooms, newChatRooms)) {
+          setState(() {
+            chatRooms = newChatRooms;
+          });
+          print("✅ 최신 채팅 목록으로 갱신됨!");
+        } else {
+          print("🔹 데이터 변경 없음 → 갱신하지 않음");
+        }
       } else {
         print('❌ 서버 응답 오류: ${response.statusCode}');
       }
@@ -227,6 +243,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
                 style: TextStyle(color: Colors.grey),
               ),
               onTap: () async {
+                final previousChatRooms = List<Map<String, dynamic>>.from(chatRooms); // 이전 데이터 저장
+
                 await Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -236,10 +254,14 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     ),
                   ),
                 );
-                fetchChatList(); // ✅ 1차 갱신 (즉시 실행)
 
-                Future.delayed(Duration(seconds: 1), () {
-                  fetchChatList(); // ✅ 1초 후 다시 실행 (최신 데이터 반영)
+                fetchChatList().then((_) {
+                  // ✅ 기존 데이터와 다를 때만 1초 후 추가 갱신
+                  if (!deepEqual(previousChatRooms, chatRooms)) {
+                    Future.delayed(Duration(seconds: 1), () {
+                      fetchChatList();
+                    });
+                  }
                 });
               },
             ),

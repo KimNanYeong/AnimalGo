@@ -24,16 +24,19 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   List<Map<String, dynamic>> messages = []; // 채팅 내역 리스트
-  Timer? _timer;
+  bool isFetching = false; // API 중복 호출 방지
+  bool isSending = false; // 중복 전송 방지
 
   /// ✅ 자동 스크롤 함수 (마지막 메시지 위치로 이동)
   void _scrollToBottom() {
     if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
+      Future.delayed(Duration(milliseconds: 100), () {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: Duration(milliseconds: 300), // 부드러운 스크롤 효과
+          curve: Curves.easeOut,
+        );
+      });
     }
   }
 
@@ -88,93 +91,71 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     }
   }
 
-  /// 서버에서 채팅 내역 가져오기
+  /// 서버에서 채팅 내역 가져오기 (최신 메시지만 반영)
   Future<void> fetchChatHistory() async {
+    if (isFetching) return; // 중복 호출 방지
+    isFetching = true;
+
     try {
       final response = await http.get(
         Uri.parse(
-            'http://122.46.89.124:7000/chat/chat/history/${widget
-                .chatId}?user_id=$userId'),
+            'http://122.46.89.124:7000/chat/chat/history/${widget.chatId}?user_id=$userId'),
       );
 
       if (response.statusCode == 200) {
         final String utf8String = utf8.decode(response.bodyBytes);
         final dynamic jsonData = json.decode(utf8String);
 
-        //print("📥 서버 응답 데이터: $jsonData");
-
         if (jsonData is Map<String, dynamic> &&
             jsonData.containsKey("messages")) {
           List<dynamic> messagesList = jsonData["messages"];
 
-          // 🔹 채팅방 ID에서 상대방 캐릭터 ID 추출 (예: user1_dog001 → dog001)
-          List<String> chatParts = widget.chatId.split("_");
-          String characId = chatParts.length > 1 ? chatParts.sublist(1).join(
-              "_") : "";
-
           List<Map<String, dynamic>> newMessages = messagesList.map<
               Map<String, dynamic>>((message) {
-            String rawTimestamp = message["timestamp"]?.toString() ?? "unknown";
-            String formattedTime = formatTimestamp(rawTimestamp);
-
-            // 🔹 sender 값이 userId와 같다면 내 메시지
-            bool isSentByMe = message["sender"].toString() == userId;
-
             return {
               "message": message["content"]?.toString() ?? "",
-              "isSentByMe": isSentByMe,
-              "time": formattedTime,
+              "isSentByMe": message["sender"].toString() == userId,
+              "time": formatTimestamp(message["timestamp"]?.toString() ?? ""),
             };
           }).toList();
 
-          messages.sort((a, b) {
-            DateTime timeA = DateFormat("a h:mm", "ko_KR").parse(a["time"]);
-            DateTime timeB = DateFormat("a h:mm", "ko_KR").parse(b["time"]);
-            return timeA.compareTo(timeB); // 시간순 정렬
-          });
-
-          if (mounted) { // ✅ 위젯이 활성화된 경우에만 setState 실행
+          if (mounted) {
             setState(() {
-              messages.clear();
-              messages.addAll(newMessages);
+              messages = newMessages;
             });
-            Future.delayed(
-                Duration(milliseconds: 100), () => _scrollToBottom());
+
+            // 🔹 UI가 업데이트된 후 즉시 스크롤 이동
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _scrollToBottom();
+            });
           }
         }
       }
     } catch (e) {
-      if (mounted) {
-        print("⚠️ JSON 파싱 오류: $e");
-      }
+      print("⚠️ 채팅 내역 가져오기 오류: $e");
+    } finally {
+      isFetching = false;
     }
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    fetchChatHistory();
   }
 
   /// 메시지 전송 함수 (Optimistic Update 적용)
   Future<void> sendMessage() async {
-    if (_messageController.text.isEmpty) return;
+    if (_messageController.text.isEmpty || isSending) return;
+    isSending = true;
 
     String messageText = _messageController.text;
     DateTime now = DateTime.now();
     String messageTime = DateFormat("yyyy-MM-dd HH:mm:ss").format(now);
 
-    List<String> chatParts = widget.chatId.split("_");
-    String characId = chatParts.length > 1
-        ? chatParts.sublist(1).join("_")
-        : "";
+    List<String> chatParts = widget.chatId.split("-");
+    String characId = chatParts.length > 1 ? chatParts[1] : "";
 
-    // ✅ 1. Optimistic UI 적용 (사용자가 보낸 메시지를 즉시 화면에 추가)
+    // 🔹 1. Optimistic UI (전송 중 UI 먼저 업데이트)
     Map<String, dynamic> tempMessage = {
       "message": messageText,
       "isSentByMe": true,
       "time": formatTimestamp(messageTime),
-      "isPending": true, // 서버 응답을 기다리는 상태
+      "isPending": true, // 전송 중 표시
     };
 
     setState(() {
@@ -182,10 +163,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       _scrollToBottom();
     });
 
-    // ✅ 2. 입력창 초기화
     _messageController.clear();
 
-    // ✅ 3. 서버에 메시지 전송
+    // 🔹 2. 서버에 메시지 전송
     Uri url = Uri.parse(
       'http://122.46.89.124:7000/chat/send_message'
           '?user_input=${Uri.encodeComponent(messageText)}'
@@ -201,15 +181,24 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
       if (response.statusCode == 200) {
         print("✅ 메시지 전송 성공");
+        Future.delayed(Duration(seconds: 2), () {
+          print("🔄 2초 후에 상대방 메시지 가져오기...");
+          fetchChatHistory(); // 상대방 메시지 불러오기
+        });
 
-        // ✅ 4. 서버 응답 후 `isPending` 제거 & 최신 메시지 동기화
-        fetchChatHistory();
       } else {
         print('❌ 메시지 전송 실패: ${response.statusCode} | 응답: ${response.body}');
       }
     } catch (e) {
       print("⚠️ 네트워크 오류: $e");
+    } finally {
+      isSending = false;
     }
+  }
+  // ✅ 새로운 메시지가 도착하면 호출 (서버에서 WebSocket 또는 Push 방식 추천)
+  Future<void> onNewMessageReceived() async {
+    if (isFetching) return; // 중복 호출 방지
+    await fetchChatHistory();
   }
 
   String friendNickname = ""; // 상대방 닉네임 저장 변수
@@ -246,25 +235,17 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   void initState() {
     super.initState();
     initializeDateFormatting('ko_KR', null);
-    fetchChatHistory(); // 채팅 내역 불러오기
-    // 10초마다 채팅 내역 갱신
-    // ✅ 10초마다 채팅 내역 갱신 (타이머 설정)
-    _timer = Timer.periodic(Duration(seconds: 5), (timer) {
-      if (mounted) { // ✅ 위젯이 살아있는지 확인 후 실행
-        fetchChatHistory().then((_) {
-          Future.delayed(Duration(milliseconds: 100), () {
-            _scrollToBottom();
-          });
-        }); // ✅ 5초마다 자동 스크롤
-      } else {
-        timer.cancel(); // ✅ 위젯이 제거되었으면 타이머 해제
-      }
+
+    // 🔹 채팅 내역을 불러오고 즉시 스크롤
+    fetchChatHistory().then((_) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToBottom();
+      });
     });
   }
 
   @override
   void dispose() {
-    _timer?.cancel(); // ✅ 타이머 정리
     _scrollController.dispose();
     _messageController.dispose();
     super.dispose();
@@ -310,11 +291,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                             padding: const EdgeInsets.only(right: 8),
                             child: CircleAvatar(
                               radius: 20, // 프로필 사진 크기
-                              backgroundImage: NetworkImage(
-                                friendProfileUrl.isNotEmpty
-                                    ? friendProfileUrl // 서버에서 가져온 프로필 사진 URL
-                                    : 'https://via.placeholder.com/150', // 기본 이미지
-                              ),
+                              backgroundImage: friendProfileUrl.isNotEmpty
+                                  ? NetworkImage(friendProfileUrl)
+                                  : AssetImage('assets/images/default_profile.png') as ImageProvider,
                             ),
                           ),
 
@@ -376,8 +355,11 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                         keyboardType: TextInputType.multiline,
                         textInputAction: TextInputAction.newline,
                         onTap: () {
-                          Future.delayed(Duration(milliseconds: 200), () {
-                            _scrollToBottom(); // ✅ 입력창을 누르면 자동 스크롤
+                          // 🔹 키보드가 올라온 후 프레임이 갱신되었을 때 스크롤 이동
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            Future.delayed(Duration(milliseconds: 300), () {
+                              _scrollToBottom(); // ✅ 키보드가 올라온 후 최하단 메시지로 이동
+                            });
                           });
                         },
                         decoration: InputDecoration(
