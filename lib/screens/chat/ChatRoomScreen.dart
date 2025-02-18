@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart'; // dotenv 사용
+
 
 class ChatRoomScreen extends StatefulWidget {
   final String chatId; // 서버에서 관리하는 채팅방 ID
@@ -150,6 +152,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     List<String> chatParts = widget.chatId.split("-");
     String characId = chatParts.length > 1 ? chatParts[1] : "";
 
+    print("🟡 sendMessage() - 현재 chatId: ${widget.chatId}");
+    print("🟡 sendMessage() - 분리된 characId: $characId"); // 🔍 여기서 dog006이 나오는지 확인
+
     // 🔹 1. Optimistic UI (전송 중 UI 먼저 업데이트)
     Map<String, dynamic> tempMessage = {
       "message": messageText,
@@ -172,6 +177,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           '&user_id=$userId'
           '&charac_id=$characId',
     );
+
+    print("🟡 sendMessage() - 전송 요청 URL: $url"); // 최종 URL 확인
 
     try {
       final response = await http.post(
@@ -205,38 +212,58 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   String friendProfileUrl = ""; // 상대방 프로필 사진 URL 저장 변수
 
   Future<void> fetchChatRoomInfo() async {
+    print("🟢 fetchChatRoomInfo() 실행됨!");
     try {
       final response = await http.get(
-        Uri.parse('http://122.46.89.124:7000/chat/chat_rooms?user_id=$userId'),
+        Uri.parse('http://122.46.89.124:7000/chat/chat/list/$userId'),
       );
 
       if (response.statusCode == 200) {
         final String utf8String = utf8.decode(response.bodyBytes);
         final dynamic jsonData = json.decode(utf8String);
 
+        print("📥 서버 응답 데이터 (채팅 목록): $jsonData");
+
         if (jsonData is Map<String, dynamic> && jsonData.containsKey("chats")) {
           for (var chat in jsonData["chats"]) {
+            print("🔍 개별 채팅방 데이터: $chat");
+
             if (chat["chat_id"] == widget.chatId) {
               setState(() {
-                friendNickname = chat["nickname"]; // 상대방 캐릭터 닉네임 저장
-                friendProfileUrl = chat["profile_url"] ?? ""; // 프로필 사진 URL 저장
+                friendNickname = chat["nickname"] ?? "알 수 없는 사용자";
+                friendProfileUrl =
+                "${dotenv.env['SERVER_URL']}/image/show_image?character_id=${widget.chatId}";
               });
+
+              print("✅ chat_id: ${widget.chatId}");
+              print("✅ friendProfileUrl: $friendProfileUrl");
+
+              if (friendProfileUrl.isEmpty) {
+                print("⚠️ friendProfileUrl이 빈 값입니다! 서버에서 데이터를 확인하세요.");
+              }
               break;
             }
           }
+        } else {
+          print("❌ 서버 응답 데이터에 'chats' 키가 없습니다!");
         }
+      } else {
+        print("❌ 서버 응답 오류: ${response.statusCode}");
       }
     } catch (e) {
       print("⚠️ 채팅방 정보 가져오기 오류: $e");
     }
   }
 
+
+
+
   @override
   void initState() {
     super.initState();
     initializeDateFormatting('ko_KR', null);
-
     // 🔹 채팅 내역을 불러오고 즉시 스크롤
+    fetchChatRoomInfo();
     fetchChatHistory().then((_) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _scrollToBottom();
@@ -261,10 +288,42 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         resizeToAvoidBottomInset: true, // ✅ 키보드가 올라올 때 자동으로 스크롤 조정
         backgroundColor: Colors.white,
         appBar: AppBar(
-          title: Text(
-              friendNickname.isNotEmpty ? friendNickname : widget.friendName),
           backgroundColor: Colors.white,
           foregroundColor: Colors.black,
+          titleSpacing: 0, // 🔹 왼쪽 여백 제거
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back, color: Colors.black),
+            onPressed: () {
+              Navigator.pop(context);
+            },
+          ),
+          title: Row(
+            mainAxisSize: MainAxisSize.min, // 🔹 필요한 크기만 차지
+            children: [
+              // 🔹 프로필 이미지
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: Colors.grey[300],
+                backgroundImage: (friendProfileUrl.isNotEmpty &&
+                    Uri.tryParse(friendProfileUrl)?.hasAbsolutePath == true)
+                    ? NetworkImage(friendProfileUrl)
+                    : null,
+                child: (friendProfileUrl.isEmpty ||
+                    Uri.tryParse(friendProfileUrl)?.hasAbsolutePath != true)
+                    ? Icon(Icons.person, color: Colors.black, size: 24)
+                    : null,
+              ),
+              SizedBox(width: 9), // 🔹 이미지와 닉네임 사이 간격 9px
+              // 🔹 닉네임
+              Expanded(
+                child: Text(
+                  friendNickname.isNotEmpty ? friendNickname : widget.friendName,
+                  overflow: TextOverflow.ellipsis, // 닉네임 길 경우 줄임
+                  style: TextStyle(fontSize: 18),
+                ),
+              ),
+            ],
+          ),
         ),
         body: Column(
           children: [
@@ -291,12 +350,20 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                             padding: const EdgeInsets.only(right: 8),
                             child: CircleAvatar(
                               radius: 20, // 프로필 사진 크기
-                              backgroundImage: friendProfileUrl.isNotEmpty
-                                  ? NetworkImage(friendProfileUrl)
-                                  : AssetImage('assets/images/default_profile.png') as ImageProvider,
+                              backgroundColor: Colors.grey[300], // 기본 배경색
+                              backgroundImage: NetworkImage(friendProfileUrl), // 서버 이미지
+                              onBackgroundImageError: (exception, stackTrace) {
+                                print("확인 : $friendProfileUrl");
+                                print("⚠️ 프로필 이미지 로딩 오류: $exception");
+                                setState(() {
+                                  friendProfileUrl = ""; // 오류 발생 시 기본 아이콘 표시
+                                });
+                              },
+                              child: friendProfileUrl.isEmpty
+                                  ? Icon(Icons.person, color: Colors.black, size: 30)
+                                  : null,
                             ),
                           ),
-
                         // ✅ 말풍선과 시간 표시
                         Flexible(
                           child: Column(
