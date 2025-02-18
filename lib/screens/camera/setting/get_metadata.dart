@@ -82,10 +82,12 @@ class _MetadataDropdownScreenState extends State<MetadataDropdownScreen> {
           }
 
           setState(() {
-            savedCharacterId = jsonResponse['characterId'];
+            savedCharacterId = (jsonResponse['characterId'] as String?) ?? "";
           });
 
           print("✅ 서버에서 받은 character_id: $savedCharacterId");
+
+          _sendCharacterIdToServer(savedCharacterId!);
 
           // ✅ character_id를 `get_picture.dart`로 전달할 때 null 체크 추가
           if (savedCharacterId == null || savedCharacterId!.isEmpty) {
@@ -117,6 +119,36 @@ class _MetadataDropdownScreenState extends State<MetadataDropdownScreen> {
       }
     } catch (e) {
       print("❌ 서버 저장 실패: $e");
+    }
+  }
+
+  /// ✅ `savedCharacterId`를 이용해 `send-character` API에 POST 요청 보내기
+  Future<void> _sendCharacterIdToServer(String characterId) async {
+    final encodedCharacterId = Uri.encodeComponent(characterId);
+    final String sendCharacterUrl = "http://122.46.89.124:7000/send-charater/$encodedCharacterId";
+
+    print("📤 서버로 전송할 character_id: $encodedCharacterId");
+
+    try {
+
+
+      var response = await http.post( // 🔥 만약 GET 요청이 필요하면 변경 필요
+        Uri.parse(sendCharacterUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+
+      );
+      print(response);
+
+      if (response.statusCode == 200) {
+        print("✅ send-character API 요청 성공");
+      } else {
+        print("❌ send-character API 오류: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("❌ send-character API 요청 실패: $e");
     }
   }
 
