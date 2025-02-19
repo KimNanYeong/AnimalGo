@@ -8,6 +8,8 @@ import '../village/VillageScreen.dart';
 import 'ChatRoomScreen.dart';
 import '../myPage/my_page.dart';
 import 'package:intl/intl.dart'; // ✅ 날짜 변환을 위해 추가
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 
 class ChatListScreen extends StatefulWidget {
   const ChatListScreen({Key? key}) : super(key: key);
@@ -178,6 +180,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
     );
   }
 
+
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -231,13 +235,20 @@ class _ChatListScreenState extends State<ChatListScreen> {
             },
             child: ListTile(
               leading: CircleAvatar(
-                backgroundColor: Colors.grey[300],
-                child: Icon(Icons.person, color: Colors.black),
+                radius: 24, // 프로필 이미지 크기 조정 가능
+                backgroundColor: Colors.grey[300], // 기본 배경색
+                backgroundImage: NetworkImage(
+                  "${dotenv.env['SERVER_URL']}/image/show_image?character_id=${chatRooms[index]["chat_id"]}",
+                ),
+                onBackgroundImageError: (exception, stackTrace) {
+                  print("⚠️ 이미지 로드 오류: $exception"); // 에러 발생 시 로그 출력
+                },
+                child: chatRooms[index]["character_id"] == "unknown_character"
+                    ? Icon(Icons.person, color: Colors.black, size: 30) // 기본 아이콘 표시
+                    : null, // 이미지가 있으면 기본 아이콘 숨김
               ),
-              title: Text(
-                  chatRooms[index]["nickname"] ?? "알 수 없는 사용자"),
-              subtitle: Text(chatRooms[index]["last_message"]["content"] ??
-                  "메시지가 없습니다."),
+              title: Text(chatRooms[index]["nickname"] ?? "알 수 없는 사용자"),
+              subtitle: Text(chatRooms[index]["last_message"]["content"] ?? "메시지가 없습니다."),
               trailing: Text(
                 chatRooms[index]["last_active_at"] ?? "unknown",
                 style: TextStyle(color: Colors.grey),
